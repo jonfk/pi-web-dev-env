@@ -1,0 +1,6 @@
+[submodule "pipane"]
+	path = pipane
+	url = git@github.com:jonfk/pipane.git
+[submodule "wede"]
+	path = wede
+	url = git@github.com:jonfk/wede.git
