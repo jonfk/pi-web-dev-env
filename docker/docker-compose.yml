@@ -1,0 +1,42 @@
+services:
+  pipane:
+    build:
+      context: ..
+      dockerfile: pipane-docker/Dockerfile
+    image: pi-assistant:local
+    command: ["pipane"]
+    environment:
+      PORT: "8222"
+      PI_CWD: /workspace
+      PI_PUBLIC_HOSTNAME: localhost
+      PIPANE_AUTH_TOKEN: ${PIPANE_AUTH_TOKEN:-change-me}
+      PI_MAX_PROCESSES: ${PI_MAX_PROCESSES:-4}
+      PI_PREWARM_COUNT: ${PI_PREWARM_COUNT:-1}
+    ports:
+      - "${PIPANE_PORT:-8222}:8222"
+    volumes:
+      - ${WORKSPACE_DIR:-..}:/workspace
+      - pi-home:/home/ubuntu/.pi
+      - cargo-home:/home/ubuntu/.cargo
+    working_dir: /workspace
+
+  wede:
+    image: pi-assistant:local
+    depends_on:
+      - pipane
+    command: ["wede"]
+    environment:
+      WEDE_PORT: "9090"
+      WEDE_PASSWORD: ${WEDE_PASSWORD:-admin}
+      WEDE_WORKSPACE: /workspace
+    ports:
+      - "${WEDE_PORT:-9090}:9090"
+    volumes:
+      - ${WORKSPACE_DIR:-..}:/workspace
+      - pi-home:/home/ubuntu/.pi
+      - cargo-home:/home/ubuntu/.cargo
+    working_dir: /workspace
+
+volumes:
+  pi-home:
+  cargo-home:

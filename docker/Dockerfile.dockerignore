@@ -1,0 +1,11 @@
+.git
+**/node_modules
+**/dist
+**/.vite
+**/coverage
+**/test-results
+**/playwright-report
+**/*.log
+wede/wede
+pipane/e2e/goldens
+pipane/e2e/videos
