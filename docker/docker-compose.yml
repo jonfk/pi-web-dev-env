@@ -24,7 +24,7 @@ services:
       PI_CWD: /workspace
       PIPANE_PUBLIC_URL: http://${PIPANE_HOSTNAME:-pipane.localhost}:${APP_PORT:-8080}
       PIPANE_AUTH_TOKEN: ${PIPANE_AUTH_TOKEN:-change-me}
-      PIPANE_AUTH_DISABLED: ${PIPANE_AUTH_DISABLED:-0}
+      PIPANE_AUTH_DISABLED: ${PIPANE_AUTH_DISABLED:-1}
       PI_MAX_PROCESSES: ${PI_MAX_PROCESSES:-4}
       PI_PREWARM_COUNT: ${PI_PREWARM_COUNT:-1}
     expose:
@@ -43,7 +43,7 @@ services:
     environment:
       WEDE_PORT: "9090"
       WEDE_PASSWORD: ${WEDE_PASSWORD:-admin}
-      WEDE_AUTH_DISABLED: ${WEDE_AUTH_DISABLED:-0}
+      WEDE_AUTH_DISABLED: ${WEDE_AUTH_DISABLED:-1}
       WEDE_WORKSPACE: /workspace
     expose:
       - "9090"
