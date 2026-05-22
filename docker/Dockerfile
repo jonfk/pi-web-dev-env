@@ -80,9 +80,9 @@ ARG ASSISTANT_USER=ubuntu
 
 COPY --from=pipane-builder --chown=${ASSISTANT_USER}:${ASSISTANT_USER} /build/pipane /opt/pipane
 COPY --from=wede-builder /build/wede/wede /usr/local/bin/wede
-COPY pipane-docker/entrypoint.sh /usr/local/bin/pipane-docker-entrypoint
+COPY docker/entrypoint.sh /usr/local/bin/pi-web-dev-env-entrypoint
 
-RUN chmod 0755 /usr/local/bin/wede /usr/local/bin/pipane-docker-entrypoint \
+RUN chmod 0755 /usr/local/bin/wede /usr/local/bin/pi-web-dev-env-entrypoint \
   && ln -s /opt/pipane/bin/pipane.js /usr/local/bin/pipane
 
 USER ${ASSISTANT_USER}
@@ -98,5 +98,5 @@ ENV NODE_ENV=production \
 
 EXPOSE 8222 9090
 
-ENTRYPOINT ["pipane-docker-entrypoint"]
+ENTRYPOINT ["pi-web-dev-env-entrypoint"]
 CMD ["pipane"]

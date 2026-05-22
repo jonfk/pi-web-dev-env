@@ -1,27 +1,33 @@
 # pipane + wede Docker image
 
-This builds one local image with:
+This builds one local image for the apps and serves both through Caddy:
 
-- `pipane` on port `8222`
-- `wede` on port `9090`
+- `pipane` at `http://pipane.localhost:8080`
+- `wede` at `http://wede.localhost:8080`
 - `pi`, Node 22, Go, Rust, uv/Python, git, `gh`, `rg`, `fd`, and common shell tools
 
 Start both services:
 
 ```bash
-cd pipane-docker
+cd docker
 docker compose up --build
 ```
 
 Open:
 
-- pipane: `http://localhost:8222/auth?token=change-me`
-- wede: `http://localhost:9090` with password `admin`
+- pipane: `http://pipane.localhost:8080/auth?token=change-me`
+- wede: `http://wede.localhost:8080` with password `admin`
 
 Useful overrides:
 
 ```bash
 PIPANE_AUTH_TOKEN=secret WEDE_PASSWORD=secret WORKSPACE_DIR=/path/to/project docker compose up --build
+```
+
+To use different local hostnames or port:
+
+```bash
+APP_PORT=8081 PIPANE_HOSTNAME=chat.localhost WEDE_HOSTNAME=ide.localhost docker compose up --build
 ```
 
 To run pipane without its built-in auth URL behind your own reverse proxy auth:
