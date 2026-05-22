@@ -10,6 +10,7 @@ services:
       PI_CWD: /workspace
       PI_PUBLIC_HOSTNAME: localhost
       PIPANE_AUTH_TOKEN: ${PIPANE_AUTH_TOKEN:-change-me}
+      PIPANE_AUTH_DISABLED: ${PIPANE_AUTH_DISABLED:-0}
       PI_MAX_PROCESSES: ${PI_MAX_PROCESSES:-4}
       PI_PREWARM_COUNT: ${PI_PREWARM_COUNT:-1}
     ports:

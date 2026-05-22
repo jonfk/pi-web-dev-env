@@ -91,6 +91,7 @@ WORKDIR /workspace
 ENV NODE_ENV=production \
     PI_CWD=/workspace \
     PORT=8222 \
+    PIPANE_AUTH_DISABLED=0 \
     WEDE_PORT=9090 \
     WEDE_PASSWORD=admin \
     WEDE_AUTH_DISABLED=0

@@ -24,6 +24,12 @@ Useful overrides:
 PIPANE_AUTH_TOKEN=secret WEDE_PASSWORD=secret WORKSPACE_DIR=/path/to/project docker compose up --build
 ```
 
+To run pipane without its built-in auth URL behind your own reverse proxy auth:
+
+```bash
+PIPANE_AUTH_DISABLED=1 WORKSPACE_DIR=/path/to/project docker compose up --build
+```
+
 To run wede without its built-in password screen behind your own reverse proxy auth:
 
 ```bash
