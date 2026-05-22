@@ -92,7 +92,8 @@ ENV NODE_ENV=production \
     PI_CWD=/workspace \
     PORT=8222 \
     WEDE_PORT=9090 \
-    WEDE_PASSWORD=admin
+    WEDE_PASSWORD=admin \
+    WEDE_AUTH_DISABLED=0
 
 EXPOSE 8222 9090
 

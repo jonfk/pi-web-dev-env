@@ -28,6 +28,7 @@ services:
     environment:
       WEDE_PORT: "9090"
       WEDE_PASSWORD: ${WEDE_PASSWORD:-admin}
+      WEDE_AUTH_DISABLED: ${WEDE_AUTH_DISABLED:-0}
       WEDE_WORKSPACE: /workspace
     ports:
       - "${WEDE_PORT:-9090}:9090"
