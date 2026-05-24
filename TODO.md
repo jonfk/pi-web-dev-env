@@ -6,3 +6,9 @@
 
 - Clear wede lint errors
 - Add a dockerfile for reproducible builds in wede
+- Add link to pipane
+
+# pipane
+
+- Investigate implementing pipane with pi AgentRuntime instead of rpc mode.
+- Add link to wede
