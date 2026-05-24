@@ -1,5 +1,2 @@
-docker/docker-compose.production.yml
-
-docker/workspace/*
-!docker/workspace/.gitkeep
 docker/.env
+prod-deployment/
