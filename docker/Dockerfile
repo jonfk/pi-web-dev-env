@@ -19,6 +19,7 @@ RUN apt-get update \
   && apt-get update \
   && apt-get install -y --no-install-recommends \
     bash \
+    stow \
     bat \
     build-essential \
     fd-find \
