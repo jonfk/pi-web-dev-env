@@ -18,6 +18,14 @@ write_wede_config() {
     '{password: $password, port: $port, authDisabled: $authDisabled}' > "${config_dir}/wede.config.json"
 }
 
+run_bootstrap() {
+  if [[ -x /usr/local/bin/pi-web-dev-env-bootstrap ]]; then
+    /usr/local/bin/pi-web-dev-env-bootstrap
+  fi
+}
+
+run_bootstrap
+
 case "${1:-}" in
   pipane)
     shift

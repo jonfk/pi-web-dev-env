@@ -46,8 +46,9 @@ RUN apt-get update \
   && ln -s /usr/local/bin/python3 /usr/local/bin/python \
   && npm install -g pnpm@10.14.0 @mariozechner/pi-coding-agent \
   && getent passwd "${ASSISTANT_USER}" >/dev/null \
-  && mkdir -p /workspace "/home/${ASSISTANT_USER}/.pi/agent" "/home/${ASSISTANT_USER}/.config/wede" \
-  && chown -R "${ASSISTANT_USER}:${ASSISTANT_USER}" /workspace "/home/${ASSISTANT_USER}/.pi" "/home/${ASSISTANT_USER}/.config" \
+  && mkdir -p /workspace "/home/${ASSISTANT_USER}/.pi/agent" "/home/${ASSISTANT_USER}/.config/wede" "/home/${ASSISTANT_USER}/.ssh" \
+  && chown -R "${ASSISTANT_USER}:${ASSISTANT_USER}" /workspace "/home/${ASSISTANT_USER}/.pi" "/home/${ASSISTANT_USER}/.config" "/home/${ASSISTANT_USER}/.ssh" \
+  && chmod 0700 "/home/${ASSISTANT_USER}/.ssh" \
   && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
     | su "${ASSISTANT_USER}" -c "sh -s -- -y --profile minimal --default-toolchain stable" \
   && echo "${ASSISTANT_USER} ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/${ASSISTANT_USER}" \
@@ -81,8 +82,9 @@ ARG ASSISTANT_USER=ubuntu
 COPY --from=pipane-builder --chown=${ASSISTANT_USER}:${ASSISTANT_USER} /build/pipane /opt/pipane
 COPY --from=wede-builder /build/wede/wede /usr/local/bin/wede
 COPY docker/entrypoint.sh /usr/local/bin/pi-web-dev-env-entrypoint
+COPY docker/bootstrap.sh /usr/local/bin/pi-web-dev-env-bootstrap
 
-RUN chmod 0755 /usr/local/bin/wede /usr/local/bin/pi-web-dev-env-entrypoint \
+RUN chmod 0755 /usr/local/bin/wede /usr/local/bin/pi-web-dev-env-entrypoint /usr/local/bin/pi-web-dev-env-bootstrap \
   && ln -s /opt/pipane/bin/pipane.js /usr/local/bin/pipane
 
 USER ${ASSISTANT_USER}

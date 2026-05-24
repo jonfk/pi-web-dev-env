@@ -33,6 +33,16 @@ services:
       - ${WORKSPACE_DIR:-..}:/workspace
       - pi-home:/home/ubuntu/.pi
       - cargo-home:/home/ubuntu/.cargo
+      - user-config:/home/ubuntu/.config
+      - user-local:/home/ubuntu/.local
+      - user-ssh:/home/ubuntu/.ssh
+      - ./user-bootstrap.sh:/usr/local/share/pi-web-dev-env/user-bootstrap.sh:ro
+      - type: bind
+        source: ${PI_SSH_KEY_PATH:-${HOME}/.ssh/id_ed25519}
+        target: /home/ubuntu/.ssh/id_ed25519
+        read_only: true
+        bind:
+          create_host_path: false
     working_dir: /workspace
 
   wede:
@@ -51,8 +61,21 @@ services:
       - ${WORKSPACE_DIR:-..}:/workspace
       - pi-home:/home/ubuntu/.pi
       - cargo-home:/home/ubuntu/.cargo
+      - user-config:/home/ubuntu/.config
+      - user-local:/home/ubuntu/.local
+      - user-ssh:/home/ubuntu/.ssh
+      - ./user-bootstrap.sh:/usr/local/share/pi-web-dev-env/user-bootstrap.sh:ro
+      - type: bind
+        source: ${PI_SSH_KEY_PATH:-${HOME}/.ssh/id_ed25519}
+        target: /home/ubuntu/.ssh/id_ed25519
+        read_only: true
+        bind:
+          create_host_path: false
     working_dir: /workspace
 
 volumes:
   pi-home:
   cargo-home:
+  user-config:
+  user-local:
+  user-ssh:
