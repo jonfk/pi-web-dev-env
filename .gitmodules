@@ -4,3 +4,9 @@
 [submodule "wede"]
 	path = wede
 	url = git@github.com:jonfk/wede.git
+[submodule "pi-webui"]
+	path = pi-webui
+	url = git@github.com:khimaros/pi-webui.git
+[submodule "vendored/pi"]
+	path = vendored/pi
+	url = git@github.com:earendil-works/pi.git
