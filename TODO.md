@@ -7,6 +7,7 @@
 - Clear wede lint errors
 - Add a dockerfile for reproducible builds in wede
 - Add link to pipane
+- Add markdown preview view
 
 # pipane
 
