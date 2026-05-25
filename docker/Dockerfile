@@ -3,6 +3,7 @@ FROM ubuntu:24.04 AS base
 ARG DEBIAN_FRONTEND=noninteractive
 ARG ASSISTANT_USER=ubuntu
 ARG PYTHON_VERSION=3.12
+ARG FZF_VERSION=0.72.0
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -39,6 +40,16 @@ RUN apt-get update \
     vim \
     xz-utils \
     zip \
+  && case "$(uname -m)" in \
+    x86_64) fzf_arch=amd64; fzf_sha256=0e58e4bd0b3c5d68c56b54c460a6863d0de79633ed18d388575a960ab447b006 ;; \
+    aarch64) fzf_arch=arm64; fzf_sha256=a0a5b50730f568c5f08b8dbba1e6e598db253e1856d371290086786b889b996b ;; \
+    *) echo "Unsupported fzf architecture: $(uname -m)" >&2; exit 1 ;; \
+  esac \
+  && curl -fsSL "https://github.com/junegunn/fzf/releases/download/v${FZF_VERSION}/fzf-${FZF_VERSION}-linux_${fzf_arch}.tar.gz" -o /tmp/fzf.tar.gz \
+  && echo "${fzf_sha256}  /tmp/fzf.tar.gz" | sha256sum -c - \
+  && tar -xzf /tmp/fzf.tar.gz -C /usr/local/bin fzf \
+  && chmod 0755 /usr/local/bin/fzf \
+  && rm /tmp/fzf.tar.gz \
   && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh \
   && UV_PYTHON_INSTALL_DIR=/opt/uv-python uv python install "${PYTHON_VERSION}" \
   && ln -s /usr/bin/batcat /usr/local/bin/bat \
