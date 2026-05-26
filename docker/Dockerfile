@@ -58,8 +58,8 @@ RUN apt-get update \
   && ln -s /usr/local/bin/python3 /usr/local/bin/python \
   && npm install -g pnpm@10.14.0 @mariozechner/pi-coding-agent \
   && getent passwd "${ASSISTANT_USER}" >/dev/null \
-  && mkdir -p /workspace "/home/${ASSISTANT_USER}/.pi/agent" "/home/${ASSISTANT_USER}/.config/wede" "/home/${ASSISTANT_USER}/.ssh" \
-  && chown -R "${ASSISTANT_USER}:${ASSISTANT_USER}" /workspace "/home/${ASSISTANT_USER}/.pi" "/home/${ASSISTANT_USER}/.config" "/home/${ASSISTANT_USER}/.ssh" \
+  && mkdir -p /workspace "/home/${ASSISTANT_USER}/.pi/agent" "/home/${ASSISTANT_USER}/.config/wede" "/home/${ASSISTANT_USER}/.local" "/home/${ASSISTANT_USER}/.ssh" \
+  && chown -R "${ASSISTANT_USER}:${ASSISTANT_USER}" /workspace "/home/${ASSISTANT_USER}/.pi" "/home/${ASSISTANT_USER}/.config" "/home/${ASSISTANT_USER}/.local" "/home/${ASSISTANT_USER}/.ssh" \
   && chmod 0700 "/home/${ASSISTANT_USER}/.ssh" \
   && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
     | su "${ASSISTANT_USER}" -c "sh -s -- -y --profile minimal --default-toolchain stable" \
@@ -109,7 +109,9 @@ RUN chmod 0755 /usr/local/bin/wede /usr/local/bin/pi-web-dev-env-entrypoint /usr
   && ln -s /opt/pipane/bin/pipane.js /usr/local/bin/pipane \
   && ln -s /opt/pi-webui/dist/server/index.js /usr/local/bin/pi-webui
 
-USER ${ASSISTANT_USER}
+ENV ASSISTANT_USER=${ASSISTANT_USER}
+
+USER root
 WORKDIR /workspace
 
 ENV NODE_ENV=production \

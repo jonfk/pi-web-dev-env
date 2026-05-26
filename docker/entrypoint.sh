@@ -1,6 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+drop_to_assistant_user() {
+  if [[ "$(id -u)" != "0" ]]; then
+    return
+  fi
+
+  local assistant_user="${ASSISTANT_USER:-ubuntu}"
+  local assistant_home
+  assistant_home="$(getent passwd "${assistant_user}" | cut -d: -f6)"
+
+  chown "${assistant_user}:${assistant_user}" \
+    "${assistant_home}/.pi" \
+    "${assistant_home}/.cargo" \
+    "${assistant_home}/.config" \
+    "${assistant_home}/.local" \
+    "${assistant_home}/.ssh"
+
+  exec sudo -H -E -u "${assistant_user}" -- "$0" "$@"
+}
+
 write_wede_config() {
   local config_dir="${HOME}/.config/wede"
   local password="${WEDE_PASSWORD:-admin}"
@@ -24,6 +43,7 @@ run_bootstrap() {
   fi
 }
 
+drop_to_assistant_user "$@"
 run_bootstrap
 
 case "${1:-}" in
