@@ -37,6 +37,11 @@ case "${1:-}" in
     write_wede_config
     exec wede --port "${WEDE_PORT:-9090}" "${WEDE_WORKSPACE:-/workspace}" "$@"
     ;;
+  pi-webui)
+    shift
+    cd /opt/pi-webui
+    exec node dist/server/index.js "$@"
+    ;;
   pi)
     shift
     exec pi "$@"

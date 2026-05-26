@@ -4,10 +4,12 @@ services:
     depends_on:
       - pipane
       - wede
+      - pi-webui
     environment:
       APP_PORT: ${APP_PORT:-8080}
       PIPANE_HOSTNAME: ${PIPANE_HOSTNAME:-pipane.localhost}
       WEDE_HOSTNAME: ${WEDE_HOSTNAME:-wede.localhost}
+      PI_WEBUI_HOSTNAME: ${PI_WEBUI_HOSTNAME:-pi-webui.localhost}
     ports:
       - "${APP_PORT:-8080}:${APP_PORT:-8080}"
     volumes:
@@ -57,6 +59,34 @@ services:
       WEDE_WORKSPACE: /workspace
     expose:
       - "9090"
+    volumes:
+      - ${WORKSPACE_DIR:-..}:/workspace
+      - pi-home:/home/ubuntu/.pi
+      - cargo-home:/home/ubuntu/.cargo
+      - user-config:/home/ubuntu/.config
+      - user-local:/home/ubuntu/.local
+      - user-ssh:/home/ubuntu/.ssh
+      - ./user-bootstrap.sh:/usr/local/share/pi-web-dev-env/user-bootstrap.sh:ro
+      - type: bind
+        source: ${PI_SSH_KEY_PATH:-${HOME}/.ssh/id_ed25519}
+        target: /home/ubuntu/.ssh/id_ed25519
+        read_only: true
+        bind:
+          create_host_path: false
+    working_dir: /workspace
+
+  pi-webui:
+    image: pi-assistant:local
+    depends_on:
+      - pipane
+    command: ["pi-webui"]
+    environment:
+      PI_WEBUI_HOST: 0.0.0.0
+      PI_WEBUI_PORT: "4096"
+      PI_PROJECT_CWD: /workspace
+      PI_WEBUI_CWD_ALLOW_ANY: ${PI_WEBUI_CWD_ALLOW_ANY:-1}
+    expose:
+      - "4096"
     volumes:
       - ${WORKSPACE_DIR:-..}:/workspace
       - pi-home:/home/ubuntu/.pi

@@ -87,17 +87,27 @@ RUN npm ci
 COPY wede/ ./
 RUN npm run build:all
 
+FROM base AS pi-webui-builder
+
+WORKDIR /build/pi-webui
+COPY pi-webui/package.json pi-webui/package-lock.json ./
+RUN npm ci
+COPY pi-webui/ ./
+RUN npm run build
+
 FROM base AS runtime
 
 ARG ASSISTANT_USER=ubuntu
 
 COPY --from=pipane-builder --chown=${ASSISTANT_USER}:${ASSISTANT_USER} /build/pipane /opt/pipane
 COPY --from=wede-builder /build/wede/wede /usr/local/bin/wede
+COPY --from=pi-webui-builder --chown=${ASSISTANT_USER}:${ASSISTANT_USER} /build/pi-webui /opt/pi-webui
 COPY docker/entrypoint.sh /usr/local/bin/pi-web-dev-env-entrypoint
 COPY docker/bootstrap.sh /usr/local/bin/pi-web-dev-env-bootstrap
 
 RUN chmod 0755 /usr/local/bin/wede /usr/local/bin/pi-web-dev-env-entrypoint /usr/local/bin/pi-web-dev-env-bootstrap \
-  && ln -s /opt/pipane/bin/pipane.js /usr/local/bin/pipane
+  && ln -s /opt/pipane/bin/pipane.js /usr/local/bin/pipane \
+  && ln -s /opt/pi-webui/dist/server/index.js /usr/local/bin/pi-webui
 
 USER ${ASSISTANT_USER}
 WORKDIR /workspace
@@ -108,9 +118,13 @@ ENV NODE_ENV=production \
     PIPANE_AUTH_DISABLED=0 \
     WEDE_PORT=9090 \
     WEDE_PASSWORD=admin \
-    WEDE_AUTH_DISABLED=0
+    WEDE_AUTH_DISABLED=0 \
+    PI_WEBUI_HOST=0.0.0.0 \
+    PI_WEBUI_PORT=4096 \
+    PI_PROJECT_CWD=/workspace \
+    PI_WEBUI_CWD_ALLOW_ANY=1
 
-EXPOSE 8222 9090
+EXPOSE 8222 9090 4096
 
 ENTRYPOINT ["pi-web-dev-env-entrypoint"]
 CMD ["pipane"]
