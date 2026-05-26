@@ -13,3 +13,7 @@
 
 - Investigate implementing pipane with pi AgentRuntime instead of rpc mode.
 - Add link to wede
+
+# pi-webui
+
+- add status or notification when a version newer than the current pi version is available
