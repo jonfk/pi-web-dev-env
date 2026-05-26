@@ -9,8 +9,5 @@ docker-up:
 docker-down:
 	docker compose -f docker/docker-compose.yml down
 
-docker-production-up:
-	docker compose -f prod-deployment/compose.yml up --build -d
-
-docker-production-down:
-	docker compose -f prod-deployment/compose.yml down
+docker-down-volumes:
+	docker compose -f docker/docker-compose.yml down --volumes
