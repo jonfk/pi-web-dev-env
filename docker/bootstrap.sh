@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-state_dir="${HOME}/.local/state/pi-web-dev-env"
+state_dir="${HOME}/.pi-web-dev-env"
 marker_file="${state_dir}/bootstrap.done"
 ssh_dir="${HOME}/.ssh"
 ssh_key="${ssh_dir}/id_ed25519"

@@ -63,13 +63,13 @@ The selected key is mounted read-only at `/home/ubuntu/.ssh/id_ed25519` in both 
 The image runs `/usr/local/bin/pi-web-dev-env-bootstrap` from the entrypoint and creates a first-run marker at:
 
 ```text
-/home/ubuntu/.local/state/pi-web-dev-env/bootstrap.done
+/home/ubuntu/.pi-web-dev-env/bootstrap.done
 ```
 
-That marker is stored in the `user-local` Docker volume, so bootstrap runs once for the persisted environment. To rerun it, remove the marker from inside either container:
+That marker is stored in the container's raw home directory, so bootstrap runs once per recreated container. To rerun it in an existing container, remove the marker:
 
 ```bash
-rm ~/.local/state/pi-web-dev-env/bootstrap.done
+rm ~/.pi-web-dev-env/bootstrap.done
 ```
 
 Add personal first-run setup to `user-bootstrap.sh`. Docker Compose mounts that file into the containers at runtime, so changes to it do not require rebuilding the image.
