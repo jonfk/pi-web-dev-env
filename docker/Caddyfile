@@ -1,15 +1,15 @@
-http://{$PIPANE_HOSTNAME:pipane.localhost}:{$APP_PORT:8080} {
+http://{$PIPANE_HOSTNAME:pipane.localhost}:{$APP_PORT:18080} {
 	reverse_proxy pipane:8222
 }
 
-http://{$WEDE_HOSTNAME:wede.localhost}:{$APP_PORT:8080} {
+http://{$WEDE_HOSTNAME:wede.localhost}:{$APP_PORT:18080} {
 	reverse_proxy wede:9090
 }
 
-http://{$PI_WEBUI_HOSTNAME:pi-webui.localhost}:{$APP_PORT:8080} {
+http://{$PI_WEBUI_HOSTNAME:pi-webui.localhost}:{$APP_PORT:18080} {
 	reverse_proxy pi-webui:4096
 }
 
-http://localhost:{$APP_PORT:8080} {
-	redir http://{$PIPANE_HOSTNAME:pipane.localhost}:{$APP_PORT:8080}
+http://localhost:{$APP_PORT:18080} {
+	redir http://{$PIPANE_HOSTNAME:pipane.localhost}:{$APP_PORT:18080}
 }

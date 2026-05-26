@@ -6,12 +6,12 @@ services:
       - wede
       - pi-webui
     environment:
-      APP_PORT: ${APP_PORT:-8080}
+      APP_PORT: ${APP_PORT:-18080}
       PIPANE_HOSTNAME: ${PIPANE_HOSTNAME:-pipane.localhost}
       WEDE_HOSTNAME: ${WEDE_HOSTNAME:-wede.localhost}
       PI_WEBUI_HOSTNAME: ${PI_WEBUI_HOSTNAME:-pi-webui.localhost}
     ports:
-      - "${APP_PORT:-8080}:${APP_PORT:-8080}"
+      - "${APP_PORT:-18080}:${APP_PORT:-18080}"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
 
@@ -24,11 +24,13 @@ services:
     environment:
       PORT: "8222"
       PI_CWD: /workspace
-      PIPANE_PUBLIC_URL: http://${PIPANE_HOSTNAME:-pipane.localhost}:${APP_PORT:-8080}
+      PIPANE_PUBLIC_URL: http://${PIPANE_HOSTNAME:-pipane.localhost}:${APP_PORT:-18080}
       PIPANE_AUTH_TOKEN: ${PIPANE_AUTH_TOKEN:-change-me}
       PIPANE_AUTH_DISABLED: ${PIPANE_AUTH_DISABLED:-1}
       PI_MAX_PROCESSES: ${PI_MAX_PROCESSES:-4}
       PI_PREWARM_COUNT: ${PI_PREWARM_COUNT:-1}
+    ports:
+      - "${PIPANE_HOST_PORT:-18081}:8222"
     expose:
       - "8222"
     volumes:
@@ -57,6 +59,8 @@ services:
       WEDE_PASSWORD: ${WEDE_PASSWORD:-admin}
       WEDE_AUTH_DISABLED: ${WEDE_AUTH_DISABLED:-1}
       WEDE_WORKSPACE: /workspace
+    ports:
+      - "${WEDE_HOST_PORT:-18082}:9090"
     expose:
       - "9090"
     volumes:
@@ -85,6 +89,8 @@ services:
       PI_WEBUI_PORT: "4096"
       PI_PROJECT_CWD: /workspace
       PI_WEBUI_CWD_ALLOW_ANY: ${PI_WEBUI_CWD_ALLOW_ANY:-1}
+    ports:
+      - "${PI_WEBUI_HOST_PORT:-18083}:4096"
     expose:
       - "4096"
     volumes:
