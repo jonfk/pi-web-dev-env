@@ -17,3 +17,15 @@
 # pi-webui
 
 - add status or notification when a version newer than the current pi version is available
+
+## Better steering/followup support
+
+Currently the send button becomes an interrupt button and enter on the input field is treated as interrupt when the assistant is streaming output. 
+I would like to make this behaviour more similar to the TUI. Inputting something when the assistant is streaming should do a steer or follow up. 
+We could keep the interrupt button but not trigger it on enter on the input field. Also we could add a keybind for interrupting. I am thinking pressing Esc twice.
+
+## Better steering/followup UI support
+
+The TUI currently shows a queued message for the steer or followup prompt while the assistant is still streaming and until it is actually used.
+The webui should do the same.
+This could also add support for editing the queued followup or steer prompt.
