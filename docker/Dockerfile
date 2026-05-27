@@ -56,7 +56,8 @@ RUN apt-get update \
   && ln -s /usr/bin/fdfind /usr/local/bin/fd \
   && ln -s "$(UV_PYTHON_INSTALL_DIR=/opt/uv-python uv python find "${PYTHON_VERSION}")" /usr/local/bin/python3 \
   && ln -s /usr/local/bin/python3 /usr/local/bin/python \
-  && npm install -g pnpm@10.14.0 @mariozechner/pi-coding-agent \
+  && npm install -g --ignore-scripts @earendil-works/pi-coding-agent \
+  && npm install -g pnpm@10.14.0 \
   && getent passwd "${ASSISTANT_USER}" >/dev/null \
   && mkdir -p /workspace "/home/${ASSISTANT_USER}/.pi/agent" "/home/${ASSISTANT_USER}/.config/wede" "/home/${ASSISTANT_USER}/.local" "/home/${ASSISTANT_USER}/.ssh" \
   && chown -R "${ASSISTANT_USER}:${ASSISTANT_USER}" /workspace "/home/${ASSISTANT_USER}/.pi" "/home/${ASSISTANT_USER}/.config" "/home/${ASSISTANT_USER}/.local" "/home/${ASSISTANT_USER}/.ssh" \
