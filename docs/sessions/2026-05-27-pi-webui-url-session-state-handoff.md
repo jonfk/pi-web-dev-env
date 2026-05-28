@@ -52,6 +52,8 @@ Important code references:
 
 ## Proposed Direction Discussed
 
+Superseded by `docs/project/prds/PRD-003-pi-webui-url-session-state.md`: the final implementation direction is to pass URL state on the WebSocket URL before controller runtime initialization. The older sketch below, where the browser sends a URL-derived `sessionFile` in `ready` and the server switches after constructing a default runtime, should not be implemented.
+
 Replace the active-session `localStorage` key with a URL search param. The likely first shape is:
 
 ```text
@@ -94,10 +96,10 @@ Decided in follow-up on 2026-05-27:
 - URL value format: use the absolute session JSONL file path. This matches the existing server protocol and avoids maintaining a separate session lookup table for now.
 - Privacy/security posture: absolute paths in URLs are acceptable for this local software. Deployments are assumed to use HTTPS.
 - Browser history behavior: URL history follows meaningful session identity changes. No **URL Session Pointer** to first real **URL Session Pointer** uses `replaceState`. Existing **URL Session Pointer** to a different **URL Session Pointer** uses `pushState`. Same **URL Session Pointer** is a no-op. Invalid **URL Session Pointer** leaves the URL unchanged.
-- Invalid or deleted URL session: show an app-level invalid-session message in the transcript and keep the bad URL visible so the user can correct it manually or navigate to `/new`. The message should look like a frontend pseudo message, similar to the initial message the TUI shows on startup. The server must not silently bootstrap a fallback/default session for an invalid **URL Session Pointer**. The client should disable the composer while the URL session is invalid.
+- Invalid or deleted URL session: show an app-level invalid-session message in the transcript and keep the bad URL visible so the user can correct it manually or navigate to a new-session cwd URL. The message should look like a frontend pseudo message, similar to the initial message the TUI shows on startup. The server must not silently bootstrap a fallback/default session for an invalid **URL Session Pointer**. The client should disable the composer while the URL session is invalid.
 - URL sessions whose stored cwd no longer exists are invalid URL state for v1. Do not automatically fall back to the current/default cwd. This could be improved later with an explicit TUI-like recovery flow that lets the user choose a replacement cwd before opening the session.
-- New/empty sessions: sessions without an accepted prompt do not have identity worth preserving. `/` without params and `/new` are aliases for the same disposable new-session flow. Do not encode an unprompted session file in the URL. Once the first prompt is accepted by Pi, the session becomes meaningful and the client updates the URL to `/?session=<absolute-jsonl-path>`.
-- Disposable new sessions encode cwd, not session identity. Canonical disposable URL shape is `/?cwd=<absolute-path>`. `/` and `/new` are accepted aliases; when no `cwd` param is present, the client should populate `cwd` from the server's resolved initial cwd. When `cwd` is present on first request, the server should validate it and use it as the canonical cwd for the disposable runtime.
+- New/empty sessions: sessions without an accepted prompt do not have identity worth preserving. `/` without params starts the disposable new-session flow. Do not encode an unprompted session file in the URL. Once the first prompt is accepted by Pi, the session becomes meaningful and the client updates the URL to `/?session=<absolute-jsonl-path>`.
+- Disposable new sessions encode cwd, not session identity. Canonical disposable URL shape is `/?cwd=<absolute-path>`. When no `cwd` param is present, the client should populate `cwd` from the server's resolved initial cwd. When `cwd` is present on first request, the server should validate it and use it as the canonical cwd for the disposable runtime.
 - URL grammar: `session` and `cwd` are mutually exclusive. `?session=<path>` opens a durable existing Pi session. `?cwd=<path>` opens a **Disposable New Session** in that cwd. A URL containing both should be rejected with `invalid_url_state` using `kind: "conflict"`.
 - `/cwd` and `/workspace` switches move the URL into cwd mode: `/?cwd=<new-cwd>`. They drop any existing `session` param because switching cwd disposes the current runtime and starts a new disposable session in that cwd. This is a meaningful navigation and should use `pushState`.
 - Browser Back/Forward should reload the page for v1. The normal startup flow then reopens the session or cwd from the URL, avoiding duplicate in-place switching logic in the browser.
@@ -126,7 +128,7 @@ Decided in follow-up on 2026-05-27:
   The client renders an **Invalid Session Message**, disables the composer, and leaves the URL unchanged. This packet covers invalid **URL Session Pointer** values and invalid `cwd` values. `defaultCwd` powers the `New session` action. `sessions` powers the `Choose session` action without requiring a follow-up request while the app is in invalid URL state. For invalid `cwd`, session lists may be based on `defaultCwd` because the requested cwd cannot be used.
 
 - Invalid URL-state pseudo message actions:
-  - `New session`: navigate to `/?cwd=<server-default-cwd>` when the server includes a fallback/default cwd, otherwise `/new`.
+  - `New session`: navigate to `/?cwd=<server-default-cwd>` when the server includes a fallback/default cwd, otherwise `/`.
   - `Choose session`: open the existing resume/session picker when the client has enough session list data.
   - Do not include a vague "clear URL" action; blank `/` now means disposable session in the initial cwd, so the action should say "New session".
 
@@ -140,7 +142,9 @@ Decided in follow-up on 2026-05-27:
 
 ## Implementation Questions To Explore
 
-- `serveStatic()` must serve the app shell for `/new`; otherwise the alias route returns a JSON 404 today.
+- `/new` is not part of v1. Blank `/` is the only no-param disposable new-session route; `/?cwd=<absolute-path>` is the canonical disposable URL.
 - The WebSocket connection path needs URL-state parsing before `NativePiSessionController` constructs its runtime.
 - `NativePiSessionController.handleReady()` should stop accepting `sessionFile`; URL session selection moves to controller initialization.
 - `session_state` URL sync should only canonicalize no-pointer disposable URLs after first prompt acceptance and should push only when an existing URL pointer changes to a different pointer.
+- Deleted or missing `session` URL paths must be rejected before `SessionManager.open(...)`, because Pi can otherwise preserve an explicit missing path and create a new session there.
+- Invalid URL-state recovery should use static session listing APIs without creating a runtime. Choosing a prefetched session from invalid state should navigate to `/?session=<encoded-session-path>`, not send `/resume`.
