@@ -29,3 +29,14 @@ We could keep the interrupt button but not trigger it on enter on the input fiel
 The TUI currently shows a queued message for the steer or followup prompt while the assistant is still streaming and until it is actually used.
 The webui should do the same.
 This could also add support for editing the queued followup or steer prompt.
+
+## No cwd state. picker fallback
+
+Start pi-webui without an agent runtime when no persisted `lastCwd` or valid session cwd exists.
+
+- Add an explicit “no cwd selected” server/client state.
+- Disable agent commands until a cwd is selected.
+- Let the user pick/add a cwd from the UI.
+- Create the runtime only after cwd selection.
+- Persist the selected cwd as `lastCwd`.
+- Remove the `process.cwd()` startup fallback once this flow exists.
