@@ -4,6 +4,10 @@
 
 Move all cwd/session-changing commands to the selected target model. At the end of this phase, runtime-changing flows resolve a new target first, then create or replace the runtime from that target. `lastCwd` is persisted only after explicit target transitions.
 
+A valid URL Cwd Pointer startup, for example `/?cwd=/absolute/project`, counts as an explicit target selection for persistence. Opening that URL must persist the validated URL cwd to `lastCwd` after the runtime target is accepted. Missing URL state, invalid URL state, and plain startup from an existing `lastCwd` must not create a new persistence event.
+
+The target transition applicator must also own transition ordering. A controller/browser tab may have at most one runtime-creating target transition in flight. Concurrent target transitions must be serialized or rejected consistently by the applicator, not guarded separately by individual command or recovery handlers.
+
 ## Files To Add
 
 - `pi-webui/src/server/target-transitions.ts`
@@ -27,7 +31,7 @@ Optional if command capability logic becomes too large:
 
 ```ts
 export type TargetTransition =
-  | { kind: "cwd"; cwd: string; source: "picker" | "slash_cwd" | "workspace" | "new_session" }
+  | { kind: "cwd"; cwd: string; source: "url_cwd_startup" | "picker" | "slash_cwd" | "workspace" | "new_session" }
   | { kind: "session"; sessionPath: string; cwd: string; source: "resume" | "picker" | "switch_session" };
 
 export async function resolveCwdTransition(args): Promise<TargetTransition>;
@@ -41,6 +45,8 @@ The exact type names can change. The important behavior is:
 - transition resolution happens before runtime replacement;
 - transition resolution does not read cwd from the current runtime as the authority;
 - persistence uses transition cwd, not `runtime.cwd`;
+- URL cwd startup persistence uses the validated URL cwd, not a runtime-derived cwd;
+- transition application serializes or rejects concurrent runtime-creating transitions for the same controller;
 - session transitions use session header cwd.
 
 ## Commands To Migrate
@@ -75,12 +81,17 @@ Some of these commands may change selected target as a side effect today. Keep P
 ## Implementation Sequence
 
 1. Add target transition tests.
+   - Valid `/?cwd=<path>` startup is treated as an explicit cwd target and persists the validated cwd to `lastCwd`.
+   - Plain `/` startup from existing valid `lastCwd` creates a runtime but does not rewrite `lastCwd`.
+   - Invalid URL state and cwd-required state do not persist `lastCwd`.
    - `/cwd <path>` resolves cwd transition with validated cwd.
    - Workspace selection resolves cwd transition from saved workspace path.
    - Session resume resolves session transition with header cwd.
    - Missing/corrupt/headerless session resume fails before runtime switch.
    - New session resolves cwd transition using current selected cwd target.
    - Transition persistence uses transition cwd.
+   - Concurrent runtime-creating transitions for one controller are serialized or rejected by the transition applicator.
+   - Double `select_cwd`, double `select_session`, and mixed cwd/session recovery races cannot create duplicate runtimes, duplicate bindings, or interleaved bootstraps.
 
 2. Implement target transition module.
    - Reuse cwd validation and session prevalidation.
@@ -97,12 +108,16 @@ Some of these commands may change selected target as a side effect today. Keep P
      - persist `lastCwd` when the transition says to persist;
      - bind session;
      - send bootstrap.
+   - The helper owns the in-flight transition gate for runtime-creating target transitions.
+   - The in-flight policy may be serialize or reject, but it must be one consistent applicator behavior and tests must pin it down.
+   - Use the same persistence decision path for valid URL cwd startup, even if startup remains outside the command transition helper.
    - Keep cancellation semantics where runtime hooks still apply.
 
 4. Remove generic cwd persistence.
    - Delete generic `setLastCwd(agentDir, this.runtime.cwd)` from command success.
    - Delete duplicate `setLastCwd` calls inside migrated commands after persistence is centralized.
    - Keep persistence only in explicit target transition flow.
+   - Preserve URL cwd startup persistence explicitly; do not accidentally remove it with generic command persistence.
 
 5. Migrate cwd and workspace commands.
    - `/cwd <path>` resolves and applies cwd transition.
@@ -126,6 +141,10 @@ Some of these commands may change selected target as a side effect today. Keep P
    - Runtime-changing commands are available in both runtime and no-runtime modes only when their arguments/actions can resolve a target.
    - Prompt-routed commands remain runtime-required.
 
+9. Route runtime-free recovery through target transition application.
+   - `select_cwd`, runtime-free `/cwd <path>`, and `select_session` should resolve targets, then use the same transition applicator as normal runtime-changing commands.
+   - Runtime-free recovery handlers should not keep a separate recovery-only concurrency guard once the applicator exists.
+
 ## Phase 3 Verification
 
 Run:
@@ -138,6 +157,9 @@ Prefer integration tests that drive commands through the same WebSocket protocol
 
 ## Phase 3 Validation Scenarios
 
+- Open `/?cwd=<valid-absolute-path>`. Confirm runtime starts in that cwd and `workspaces.json:lastCwd` is updated to the validated URL cwd.
+- Open `/` with an existing valid `lastCwd`. Confirm runtime starts in that cwd and no new persistence write is required.
+- Open invalid URL state or cwd-required state. Confirm no `lastCwd` write happens until the user chooses a recovery target.
 - Use `/cwd <path>` from an active session. Confirm target changes first, runtime restarts in that cwd, URL moves to cwd mode, and `lastCwd` is updated from the transition cwd.
 - Use `/workspace <name>`. Confirm target resolves from workspace path and runtime starts in workspace cwd.
 - Use `/resume <session>`. Confirm target resolves from session header cwd, runtime starts in that cwd, and `lastCwd` becomes the session header cwd.
@@ -146,12 +168,15 @@ Prefer integration tests that drive commands through the same WebSocket protocol
 - Use `new_session` protocol command. Confirm it creates a fresh session in the selected cwd target.
 - Run prompt, bash, model, and read-only session commands. Confirm they do not rewrite `lastCwd`.
 - Try a malformed or missing session path through resume/switch. Confirm it fails before runtime replacement and leaves the current runtime target intact.
+- Trigger two recovery selections quickly, including double cwd selection, double session selection, and mixed cwd/session selection. Confirm the transition applicator serializes or rejects the second transition consistently and only one runtime/bind/bootstrap sequence wins.
 
 ## Done Criteria
 
 - Runtime-changing commands resolve selected targets before runtime replacement.
 - Runtime cwd no longer acts as source of truth for selected cwd.
 - `lastCwd` is persisted only from explicit target transitions.
+- Valid URL cwd startup persists the validated URL cwd as an explicit target selection.
+- Runtime-creating target transitions for a controller cannot overlap; the applicator owns serialization or rejection.
 - Session resume persists header cwd.
 - Generic command success no longer persists cwd.
 - Runtime-free and runtime-required command availability is clear in the Slash Command Catalog.
