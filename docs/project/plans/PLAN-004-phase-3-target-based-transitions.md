@@ -8,6 +8,11 @@ A valid URL Cwd Pointer startup, for example `/?cwd=/absolute/project`, counts a
 
 The target transition applicator must also own transition ordering. A controller/browser tab may have at most one runtime-creating target transition in flight. Concurrent target transitions must be serialized or rejected consistently by the applicator, not guarded separately by individual command or recovery handlers.
 
+## Known Regressions Absorbed By Phase 3
+
+- Valid URL cwd startup must persist `lastCwd`. After generic command-success cwd persistence is removed, opening `/?cwd=<valid-absolute-path>` can start in the requested cwd without remembering it for future plain `/` startup. Phase 3 should treat validated URL cwd startup as an explicit target transition and persist the validated URL cwd through the same persistence decision path as `/cwd`, workspace selection, and session selection.
+- Runtime-free recovery can currently overlap runtime creation. In the Phase 2 recovery shape, blocked startup requests enter `handleRuntimeFreeRecovery(...)`; `select_cwd`, runtime-free `/cwd <path>`, and `select_session` can call `recoverRuntime(...)`; and `recoverRuntime(...)` clears `startupBlock` only after awaiting runtime creation. Two quick recovery selections can therefore both create/bind/bootstrap runtimes. Phase 3 should remove this race by routing runtime-free recovery through the target transition applicator, whose Interface owns transition serialization or rejection.
+
 ## Files To Add
 
 - `pi-webui/src/server/target-transitions.ts`
