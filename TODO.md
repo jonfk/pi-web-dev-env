@@ -16,6 +16,7 @@
 
 # pi-webui
 
+- Add `@` file handler support
 - Remove `PI_WEBUI_CWD_ALLOW_ANY` and `ALLOW_ANY_CWD` and any of the behaviour that attempts to validat paths for cwd
 - add status or notification when a version newer than the current pi version is available
 
