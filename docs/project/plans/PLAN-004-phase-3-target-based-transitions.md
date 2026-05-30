@@ -37,7 +37,7 @@ Optional if command capability logic becomes too large:
 ```ts
 export type TargetTransition =
   | { kind: "cwd"; cwd: string; source: "url_cwd_startup" | "picker" | "slash_cwd" | "workspace" | "new_session" }
-  | { kind: "session"; sessionPath: string; cwd: string; source: "resume" | "picker" | "switch_session" };
+  | { kind: "session"; sessionPath: string; cwd: string; source: "import" | "picker" | "switch_session" };
 
 export async function resolveCwdTransition(args): Promise<TargetTransition>;
 export async function resolveWorkspaceTransition(args): Promise<TargetTransition>;
@@ -60,7 +60,6 @@ The exact type names can change. The important behavior is:
 - `/cwd` picker result
 - `/workspace <name-or-path>`
 - `/workspace` picker result
-- `/resume <path>`
 - `/resume` picker result
 - `/new`
 - `new_session`
@@ -91,8 +90,8 @@ Some of these commands may change selected target as a side effect today. Keep P
    - Invalid URL state and cwd-required state do not persist `lastCwd`.
    - `/cwd <path>` resolves cwd transition with validated cwd.
    - Workspace selection resolves cwd transition from saved workspace path.
-   - Session resume resolves session transition with header cwd.
-   - Missing/corrupt/headerless session resume fails before runtime switch.
+   - Picker/protocol session switching resolves session transition with header cwd.
+   - Missing/corrupt/headerless session switching fails before runtime switch.
    - New session resolves cwd transition using current selected cwd target.
    - Transition persistence uses transition cwd.
    - Concurrent runtime-creating transitions for one controller are serialized or rejected by the transition applicator.
@@ -131,7 +130,7 @@ Some of these commands may change selected target as a side effect today. Keep P
    - Workspace picker uses the same transition path.
 
 6. Migrate session commands.
-   - `/resume <path>` resolves and applies session transition.
+   - `/resume` opens the session picker.
    - Session picker selection uses URL navigation or target transition consistently with Phase 2 choice.
    - `switch_session` uses session transition.
    - Session header cwd is persisted as `lastCwd`.
@@ -167,12 +166,12 @@ Prefer integration tests that drive commands through the same WebSocket protocol
 - Open invalid URL state or cwd-required state. Confirm no `lastCwd` write happens until the user chooses a recovery target.
 - Use `/cwd <path>` from an active session. Confirm target changes first, runtime restarts in that cwd, URL moves to cwd mode, and `lastCwd` is updated from the transition cwd.
 - Use `/workspace <name>`. Confirm target resolves from workspace path and runtime starts in workspace cwd.
-- Use `/resume <session>`. Confirm target resolves from session header cwd, runtime starts in that cwd, and `lastCwd` becomes the session header cwd.
-- Use session picker from runtime state. Confirm selection follows the same session target rules as typed `/resume`.
+- Use `/resume`. Confirm the session picker opens.
+- Use session picker from runtime state. Confirm target resolves from session header cwd, runtime starts in that cwd, and `lastCwd` becomes the session header cwd.
 - Use `/new` from a durable session. Confirm URL moves to cwd mode without encoding empty session identity.
 - Use `new_session` protocol command. Confirm it creates a fresh session in the selected cwd target.
 - Run prompt, bash, model, and read-only session commands. Confirm they do not rewrite `lastCwd`.
-- Try a malformed or missing session path through resume/switch. Confirm it fails before runtime replacement and leaves the current runtime target intact.
+- Try a malformed or missing session path through protocol session switching. Confirm it fails before runtime replacement and leaves the current runtime target intact.
 - Trigger two recovery selections quickly, including double cwd selection, double session selection, and mixed cwd/session selection. Confirm the transition applicator serializes or rejects the second transition consistently and only one runtime/bind/bootstrap sequence wins.
 
 ## Done Criteria
@@ -182,6 +181,6 @@ Prefer integration tests that drive commands through the same WebSocket protocol
 - `lastCwd` is persisted only from explicit target transitions.
 - Valid URL cwd startup persists the validated URL cwd as an explicit target selection.
 - Runtime-creating target transitions for a controller cannot overlap; the applicator owns serialization or rejection.
-- Session resume persists header cwd.
+- Session picker/protocol switching persists header cwd.
 - Generic command success no longer persists cwd.
 - Runtime-free and runtime-required command availability is clear in the Slash Command Catalog.
