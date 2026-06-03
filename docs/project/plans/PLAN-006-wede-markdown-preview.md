@@ -34,7 +34,7 @@ Add markdown preview support to wede for markdown files. Markdown tabs can switc
 
 ## First-Version Behavior
 
-- Files ending in `.md`, `.markdown`, `.mdown`, or `.mkd` are treated as markdown preview candidates.
+- Files ending in `.md` are treated as markdown preview candidates.
 - Markdown files still open as editable CodeMirror tabs by default.
 - A markdown-only toolbar offers three modes:
   - Edit
@@ -45,9 +45,9 @@ Add markdown preview support to wede for markdown files. Markdown tabs can switc
 - Split mode shows CodeMirror and rendered markdown side by side on desktop.
 - On mobile, split mode may stack vertically or fall back to preview/edit switching if side-by-side layout is too cramped.
 - Preview updates from `currentTab.content`, including unsaved edits.
-- Existing `Mod-s` save behavior continues to save the markdown source.
+- Existing `Mod-s` save behavior continues to save the markdown source while the editor is visible.
 - Existing modified indicators continue to reflect source content changes.
-- External links keep using the app's current link interception behavior.
+- Markdown preview links render as normal anchors and are not routed through the app's in-browser preview tab.
 - Relative links and images render without special workspace rewriting in v1.
 - Raw HTML is not mounted as live DOM.
 
@@ -118,7 +118,7 @@ The exact implementation can differ, but it should preserve the locked decisions
 
 1. Add an `isMarkdownFile(filename)` helper near existing file/language helpers in `IDE.jsx` or a small shared helper module if duplication appears.
 2. Add markdown preview mode state, defaulting to `edit`.
-3. Persist the selected markdown mode in local storage as a UI preference.
+3. Do not persist markdown mode in local storage for v1; each opened markdown tab starts in edit mode.
 4. In `renderTabContent`, detect markdown tabs and route them through a markdown-aware wrapper.
 5. Keep browser tabs and non-markdown editor tabs unchanged.
 6. Add a compact markdown toolbar visible only for markdown tabs.
@@ -130,17 +130,12 @@ The exact implementation can differ, but it should preserve the locked decisions
 9. In Preview mode, render `MarkdownPreview`.
 10. In Split mode, render both the existing `Editor` and `MarkdownPreview`, each with stable dimensions and independent scrolling.
 11. Make sure `onChange`, `onSave`, and `onCursorChange` still flow only through the `Editor`.
-12. Keep the status bar language display as Markdown for markdown files.
+12. Opt markdown preview links out of the current global link interception so clicks are not routed into wede Browser tabs.
+13. Keep the status bar language display as Markdown for markdown files.
 
 ### State Notes
 
-The markdown mode is a UI preference, not tab content. Persisting one global mode is enough for v1:
-
-```js
-const [markdownMode, setMarkdownMode] = useState(() => localStorage.getItem('wede_markdown_mode') || 'edit')
-```
-
-If per-tab mode becomes desirable later, it can be added without changing the markdown rendering component.
+The markdown mode is UI state, not tab content. For v1, keep it in memory and default new markdown tabs to edit mode. If per-tab mode or persisted mode becomes desirable later, it can be added without changing the markdown rendering component.
 
 ## Phase 3: Styling And Verification
 
@@ -191,9 +186,11 @@ Manual browser verification should cover:
 - Toggle to Preview mode.
 - Toggle to Split mode.
 - Type unsaved markdown and confirm preview updates.
-- Save with the existing Save button and `Mod-s`.
+- Save edited markdown with the existing Save button and `Mod-s` while the editor is visible.
+- Confirm `Mod-s` is not required to work while the markdown tab is in preview-only mode.
 - Confirm raw HTML is displayed inertly and does not execute.
 - Confirm tables, task lists, strikethrough, fenced code blocks, blockquotes, and links render acceptably.
+- Confirm markdown preview links use normal browser link behavior and do not open wede Browser tabs.
 - Confirm a non-markdown file still opens exactly as before.
 - Confirm browser tabs still open and render exactly as before.
 - Confirm dark and light themes both look acceptable.
@@ -203,6 +200,7 @@ Manual browser verification should cover:
 ## Acceptance Checklist
 
 - Markdown tabs have Edit, Preview, and Split modes.
+- Markdown preview is scoped to `.md` files only.
 - Preview renders from unsaved `currentTab.content`.
 - Source editing and save flow are unchanged.
 - Raw HTML is not rendered as live DOM.
