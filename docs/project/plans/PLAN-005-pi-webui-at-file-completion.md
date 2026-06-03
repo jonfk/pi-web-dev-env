@@ -68,10 +68,18 @@ Server response:
 Item shape:
 
 ```js
-{ value, label, description, isDirectory }
+{
+  insertText,
+  label,
+  description,
+  isDirectory,
+  addsTrailingSpace,
+  cursorOffset,
+  replaceFollowingText
+}
 ```
 
-`value` is ready to insert, including leading `@`, quotes when needed, and trailing `/` for directories. The frontend owns final replacement and trailing-space behavior.
+`insertText` is ready to insert, including leading `@`, quotes when needed, and trailing `/` for directories. `addsTrailingSpace`, `cursorOffset`, and optional `replaceFollowingText` make insertion behavior explicit so the frontend does not infer cursor or quoting semantics from the string shape.
 
 ## Phase Split
 
@@ -247,7 +255,7 @@ Also perform one browser smoke test against a real workspace:
 - `fzf`.
 - `fdfind` resolution.
 - Client-visible backend error reporting for file completion.
-- File preview or metadata beyond `value`, `label`, `description`, and `isDirectory`.
+- File preview or metadata beyond the explicit insertion contract fields.
 - Polished redesign of the composer beyond the dedicated file completion menu.
 
 ## Done Criteria
