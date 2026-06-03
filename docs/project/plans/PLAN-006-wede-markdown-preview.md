@@ -40,14 +40,17 @@ Add markdown preview support to wede for markdown files. Markdown tabs can switc
   - Edit
   - Preview
   - Split
+- On mobile, the markdown toolbar offers only:
+  - Edit
+  - Preview
 - Edit mode shows only CodeMirror.
 - Preview mode shows only rendered markdown.
 - Split mode shows CodeMirror and rendered markdown side by side on desktop.
-- On mobile, split mode may stack vertically or fall back to preview/edit switching if side-by-side layout is too cramped.
+- On mobile, Split mode is not offered. If an existing tab is already in Split mode after resizing from desktop to mobile, render Preview as the mobile fallback without changing the saved in-memory mode.
 - Preview updates from `currentTab.content`, including unsaved edits.
 - Existing `Mod-s` save behavior continues to save the markdown source while the editor is visible.
 - Existing modified indicators continue to reflect source content changes.
-- Markdown preview links render as normal anchors and are not routed through the app's in-browser preview tab.
+- HTTP(S) markdown preview links follow the existing wede link behavior and are routed through the app's in-browser preview tab.
 - Relative links and images render without special workspace rewriting in v1.
 - Raw HTML is not mounted as live DOM.
 
@@ -117,25 +120,28 @@ The exact implementation can differ, but it should preserve the locked decisions
 ### Implementation Sequence
 
 1. Add an `isMarkdownFile(filename)` helper near existing file/language helpers in `IDE.jsx` or a small shared helper module if duplication appears.
-2. Add markdown preview mode state, defaulting to `edit`.
-3. Do not persist markdown mode in local storage for v1; each opened markdown tab starts in edit mode.
+2. Add per-tab markdown preview mode state, defaulting to `edit`.
+3. Do not persist markdown mode in local storage for v1. Keep mode in memory, keyed by tab path, so each markdown tab can keep its own mode while open and newly opened/restored tabs start in edit mode.
 4. In `renderTabContent`, detect markdown tabs and route them through a markdown-aware wrapper.
 5. Keep browser tabs and non-markdown editor tabs unchanged.
-6. Add a compact markdown toolbar visible only for markdown tabs.
+6. Add a compact markdown toolbar visible only for markdown tabs. The toolbar must be usable on both desktop and mobile.
 7. Use lucide icons where suitable:
    - edit/source icon for Edit
    - eye icon for Preview
    - split/panel icon for Split
-8. In Edit mode, render the existing `Editor`.
-9. In Preview mode, render `MarkdownPreview`.
-10. In Split mode, render both the existing `Editor` and `MarkdownPreview`, each with stable dimensions and independent scrolling.
-11. Make sure `onChange`, `onSave`, and `onCursorChange` still flow only through the `Editor`.
-12. Opt markdown preview links out of the current global link interception so clicks are not routed into wede Browser tabs.
-13. Keep the status bar language display as Markdown for markdown files.
+8. On mobile, omit the Split toolbar option.
+9. In Edit mode, render the existing `Editor`.
+10. In Preview mode, render `MarkdownPreview`.
+11. In Split mode on desktop, render both the existing `Editor` and `MarkdownPreview`, each with stable dimensions and independent scrolling.
+12. In Split mode on mobile, render `MarkdownPreview` as the fallback without mutating the tab's in-memory mode.
+13. Hide the status bar `Ln/Col` display when the active markdown tab is in preview-only mode or mobile Split fallback, because there is no visible editor cursor.
+14. Make sure `onChange`, `onSave`, and `onCursorChange` still flow only through the `Editor`.
+15. Keep the current global link interception behavior for HTTP(S) markdown preview links so they continue to open in wede Browser tabs.
+16. Keep the status bar language display as Markdown for markdown files.
 
 ### State Notes
 
-The markdown mode is UI state, not tab content. For v1, keep it in memory and default new markdown tabs to edit mode. If per-tab mode or persisted mode becomes desirable later, it can be added without changing the markdown rendering component.
+The markdown mode is UI state, not tab content. For v1, keep it in memory as per-tab state keyed by tab path, and default missing/new/restored markdown tabs to edit mode. Do not write markdown mode into localStorage or tab metadata. If localStorage persistence becomes desirable later, it can be added without changing the markdown rendering component.
 
 ## Phase 3: Styling And Verification
 
@@ -184,13 +190,16 @@ Manual browser verification should cover:
 - Open a `.md` file.
 - Confirm it starts in Edit mode.
 - Toggle to Preview mode.
-- Toggle to Split mode.
+- On desktop, toggle to Split mode.
+- On mobile, confirm Split mode is not offered in the markdown toolbar.
+- On mobile, confirm a tab already in Split mode renders Preview as a fallback after resizing.
 - Type unsaved markdown and confirm preview updates.
 - Save edited markdown with the existing Save button and `Mod-s` while the editor is visible.
 - Confirm `Mod-s` is not required to work while the markdown tab is in preview-only mode.
 - Confirm raw HTML is displayed inertly and does not execute.
 - Confirm tables, task lists, strikethrough, fenced code blocks, blockquotes, and links render acceptably.
-- Confirm markdown preview links use normal browser link behavior and do not open wede Browser tabs.
+- Confirm HTTP(S) markdown preview links continue to open wede Browser tabs through the existing link interception behavior.
+- Confirm preview-only mode hides `Ln/Col` in the status bar while still showing Markdown as the language.
 - Confirm a non-markdown file still opens exactly as before.
 - Confirm browser tabs still open and render exactly as before.
 - Confirm dark and light themes both look acceptable.
@@ -199,10 +208,12 @@ Manual browser verification should cover:
 
 ## Acceptance Checklist
 
-- Markdown tabs have Edit, Preview, and Split modes.
+- Markdown tabs have Edit, Preview, and desktop Split modes.
+- Mobile markdown tabs offer Edit and Preview, with Preview fallback for retained Split state.
 - Markdown preview is scoped to `.md` files only.
 - Preview renders from unsaved `currentTab.content`.
 - Source editing and save flow are unchanged.
+- Preview-only mode does not show stale `Ln/Col` cursor status.
 - Raw HTML is not rendered as live DOM.
 - GFM tables and task lists render.
 - Relative images are not specially rewritten in v1.
