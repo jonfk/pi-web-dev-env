@@ -26,6 +26,8 @@ Add markdown preview support to wede for markdown files. Markdown tabs can switc
 - Do not render raw HTML in v1.
 - Raw HTML should appear as inert literal content according to the renderer's safe default behavior.
 - Do not add `rehype-raw`, `rehype-sanitize`, DOMPurify, `marked`, `markdown-it`, or syntax highlighters in v1.
+- HTTP(S) markdown preview links render as real anchors so existing wede link interception can open them in the app's browser tab.
+- Relative markdown preview links do not render as clickable anchors in v1. Render them as visibly unsupported inert inline content, with the target available for inspection.
 - Do not add special handling for relative images in v1.
 - Do not add code block syntax highlighting in v1.
 - Keep save behavior unchanged.
@@ -51,7 +53,8 @@ Add markdown preview support to wede for markdown files. Markdown tabs can switc
 - Existing `Mod-s` save behavior continues to save the markdown source while the editor is visible.
 - Existing modified indicators continue to reflect source content changes.
 - HTTP(S) markdown preview links follow the existing wede link behavior and are routed through the app's in-browser preview tab.
-- Relative links and images render without special workspace rewriting in v1.
+- Relative markdown preview links are shown as unsupported/inert content without an `href`, so they do not accidentally navigate the wede app route.
+- Relative images render without special workspace rewriting in v1.
 - Raw HTML is not mounted as live DOM.
 
 ## Dependency Plan
@@ -92,6 +95,8 @@ This split keeps the renderer small and testable before threading it through the
 - Keep raw HTML inert by relying on the renderer's default behavior.
 - Style generated elements through a wrapper class, not inline styles on every element.
 - Render code blocks as plain styled `<pre><code>` blocks.
+- Render HTTP(S) links as normal anchors.
+- Render non-HTTP(S) markdown links as inert unsupported text, not anchors.
 
 ### Interface Sketch
 
@@ -138,7 +143,8 @@ The exact implementation can differ, but it should preserve the locked decisions
 14. Hide the status bar `Ln/Col` display when the active markdown tab is in preview-only mode or mobile Split fallback, because there is no visible editor cursor.
 15. Make sure `onChange`, `onSave`, and `onCursorChange` still flow only through the `Editor`.
 16. Keep the current global link interception behavior for HTTP(S) markdown preview links so they continue to open in wede Browser tabs.
-17. Keep the status bar language display as Markdown for markdown files.
+17. Render relative markdown preview links as visibly unsupported inert content without `href`.
+18. Keep the status bar language display as Markdown for markdown files.
 
 ### State Notes
 
@@ -156,6 +162,7 @@ The markdown mode is UI state, not tab content. For v1, keep it in memory as per
 - Use a readable document width in preview-only mode while still filling the editor area.
 - In split mode, let each pane scroll independently.
 - Keep headings, paragraphs, lists, blockquotes, tables, links, inline code, code blocks, horizontal rules, and task lists legible in dark and light themes.
+- Style unsupported relative links so they are readable but clearly not clickable.
 - Do not use a card-heavy or marketing-style preview surface.
 - Do not introduce a new color palette; use existing theme variables.
 - Text must not overlap toolbar, tabs, terminal, or status bar.
@@ -200,6 +207,7 @@ Manual browser verification should cover:
 - Confirm raw HTML is displayed inertly and does not execute.
 - Confirm tables, task lists, strikethrough, fenced code blocks, blockquotes, and links render acceptably.
 - Confirm HTTP(S) markdown preview links continue to open wede Browser tabs through the existing link interception behavior.
+- Confirm relative markdown preview links render as visibly unsupported inert content with no `href` and do not navigate.
 - Confirm preview-only mode hides `Ln/Col` in the status bar while still showing Markdown as the language.
 - Confirm a non-markdown file still opens exactly as before.
 - Confirm browser tabs still open and render exactly as before.
@@ -217,6 +225,8 @@ Manual browser verification should cover:
 - Preview-only mode does not show stale `Ln/Col` cursor status.
 - Raw HTML is not rendered as live DOM.
 - GFM tables and task lists render.
+- HTTP(S) markdown preview links open/update wede Browser tabs through existing link interception.
+- Relative markdown preview links render inert and unsupported, not as clickable anchors.
 - Relative images are not specially rewritten in v1.
 - Code blocks are styled but not syntax highlighted.
 - Non-markdown files are unaffected.
