@@ -122,26 +122,27 @@ The exact implementation can differ, but it should preserve the locked decisions
 1. Add an `isMarkdownFile(filename)` helper near existing file/language helpers in `IDE.jsx` or a small shared helper module if duplication appears.
 2. Add per-tab markdown preview mode state, defaulting to `edit`.
 3. Do not persist markdown mode in local storage for v1. Keep mode in memory, keyed by tab path, so each markdown tab can keep its own mode while open and newly opened/restored tabs start in edit mode.
-4. In `renderTabContent`, detect markdown tabs and route them through a markdown-aware wrapper.
-5. Keep browser tabs and non-markdown editor tabs unchanged.
-6. Add a compact markdown toolbar visible only for markdown tabs. The toolbar must be usable on both desktop and mobile.
-7. Use lucide icons where suitable:
+4. Clear a tab's markdown mode when that tab closes, and clear all markdown modes when switching workspaces.
+5. In `renderTabContent`, detect markdown tabs and route them through a markdown-aware wrapper.
+6. Keep browser tabs and non-markdown editor tabs unchanged.
+7. Add a compact markdown toolbar visible only for markdown tabs. The toolbar must be usable on both desktop and mobile.
+8. Use lucide icons where suitable:
    - edit/source icon for Edit
    - eye icon for Preview
    - split/panel icon for Split
-8. On mobile, omit the Split toolbar option.
-9. In Edit mode, render the existing `Editor`.
-10. In Preview mode, render `MarkdownPreview`.
-11. In Split mode on desktop, render both the existing `Editor` and `MarkdownPreview`, each with stable dimensions and independent scrolling.
-12. In Split mode on mobile, render `MarkdownPreview` as the fallback without mutating the tab's in-memory mode.
-13. Hide the status bar `Ln/Col` display when the active markdown tab is in preview-only mode or mobile Split fallback, because there is no visible editor cursor.
-14. Make sure `onChange`, `onSave`, and `onCursorChange` still flow only through the `Editor`.
-15. Keep the current global link interception behavior for HTTP(S) markdown preview links so they continue to open in wede Browser tabs.
-16. Keep the status bar language display as Markdown for markdown files.
+9. On mobile, omit the Split toolbar option.
+10. In Edit mode, render the existing `Editor`.
+11. In Preview mode, render `MarkdownPreview`.
+12. In Split mode on desktop, render both the existing `Editor` and `MarkdownPreview`, each with stable dimensions and independent scrolling.
+13. In Split mode on mobile, render `MarkdownPreview` as the fallback without mutating the tab's in-memory mode.
+14. Hide the status bar `Ln/Col` display when the active markdown tab is in preview-only mode or mobile Split fallback, because there is no visible editor cursor.
+15. Make sure `onChange`, `onSave`, and `onCursorChange` still flow only through the `Editor`.
+16. Keep the current global link interception behavior for HTTP(S) markdown preview links so they continue to open in wede Browser tabs.
+17. Keep the status bar language display as Markdown for markdown files.
 
 ### State Notes
 
-The markdown mode is UI state, not tab content. For v1, keep it in memory as per-tab state keyed by tab path, and default missing/new/restored markdown tabs to edit mode. Do not write markdown mode into localStorage or tab metadata. If localStorage persistence becomes desirable later, it can be added without changing the markdown rendering component.
+The markdown mode is UI state, not tab content. For v1, keep it in memory as per-tab state keyed by tab path, and default missing/new/restored markdown tabs to edit mode. Delete a closed tab's markdown mode entry so reopening that markdown file starts in edit mode again. Clear all markdown mode entries when switching workspaces so same relative paths in different workspaces do not inherit stale modes. Do not write markdown mode into localStorage or tab metadata. If localStorage persistence becomes desirable later, it can be added without changing the markdown rendering component.
 
 ## Phase 3: Styling And Verification
 
