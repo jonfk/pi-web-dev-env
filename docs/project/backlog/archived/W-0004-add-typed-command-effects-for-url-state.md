@@ -1,5 +1,7 @@
 # Add Typed Command Effects For URL State
 
+Status: Implemented
+
 ## Summary
 
 Replace browser-side command-name inference for pi-webui URL updates with typed semantic command effects returned by successful command responses.
