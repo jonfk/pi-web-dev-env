@@ -17,7 +17,7 @@ Implement a workspace index protocol that the sidebar can consume without reques
 This work depends on:
 
 - `docs/project/backlog/W-0004-add-typed-command-effects-for-url-state.md`, which owns typed command effects for URL synchronization.
-- `docs/project/backlog/W-0005-support-new-session-cwd-payload.md`, which owns the explicit `new_session.cwd` protocol needed by workspace-level sidebar actions.
+- `docs/project/backlog/W-0005-support-new-session-cwd-payload.md`, which owns the explicit `open_cwd` protocol needed by workspace-level sidebar actions.
 
 ## Scope
 
@@ -131,7 +131,7 @@ Pagination should be scoped to one workspace:
 {
   type: "command_result",
   payload: {
-    command: "new_session",
+    command: "open_cwd",
     ok: true,
     data: { cwd: "/abs/workspace" },
     effects: [

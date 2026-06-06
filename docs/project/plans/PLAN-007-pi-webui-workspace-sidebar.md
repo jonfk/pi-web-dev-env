@@ -216,7 +216,7 @@ send({ type: "switch_session", sessionPath: session.path });
 - Workspace new-session action should use the target-specific new-session protocol from `W-0005`, for example:
 
 ```js
-send({ type: "new_session", cwd: workspace.path });
+send({ type: "open_cwd", cwd: workspace.path });
 ```
 
 - `show more` should request the next page for a single workspace:

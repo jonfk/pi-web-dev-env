@@ -13,7 +13,7 @@ Refactor the current `W-0004` typed command-effect pre-work so target-changing c
 - wrap the result with `withCommandEffects(data, [runtimeTargetChangedEffect(target)])`;
 - serialize it through `commandSuccessPayload`.
 
-`docs/project/backlog/W-0005-support-new-session-cwd-payload.md` will add another target-changing `new_session` path for workspace sidebar actions. Before adding that path, concentrate the target-changing command result rules so new callers do not need to remember how URL effects are emitted.
+`docs/project/backlog/W-0005-support-new-session-cwd-payload.md` will add the target-changing `open_cwd` path for workspace sidebar actions. Before adding that path, concentrate the target-changing command result rules so new callers do not need to remember how URL effects are emitted.
 
 This ticket covers the architectural cleanup identified while reviewing the `W-0004` staged changes against `docs/project/plans/PLAN-007-pi-webui-workspace-sidebar.md`. The future browser-side workspace index store remains part of `W-0006` and sidebar implementation work, not this ticket.
 
@@ -32,7 +32,7 @@ Share the same target-changing command result path for runtime-free recovery tra
 - Keep command-specific display data intact.
 - Keep failure and cancellation results free of runtime target effects.
 - Keep browser URL state driven by semantic effects, not command names.
-- Keep `W-0005` explicit `new_session.cwd` behavior out of this ticket.
+- Keep `W-0005` explicit `open_cwd` behavior out of this ticket.
 - Keep `W-0006` workspace index protocol and sidebar store behavior out of this ticket.
 
 ## Acceptance Criteria
