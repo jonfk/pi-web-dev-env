@@ -36,6 +36,12 @@ This work depends on:
   - `list_workspace_sessions` for loading more sessions in one workspace.
   - `workspace_sessions_page` for the paged response.
 - Add a browser-side store module, such as `pi-webui/public/workspace-index-state.mjs`, that applies snapshots, events, and pages.
+- The browser-side store module owns:
+  - replacing state from `workspace_index_snapshot`;
+  - applying canonical `workspace_index_event` updates;
+  - appending `workspace_sessions_page` results only when the page `listVersion` matches the workspace's current `listVersion`;
+  - discarding or ignoring stale loaded workspace pages when a workspace list version changes;
+  - exposing state that sidebar rendering can consume directly without reconstructing workspace grouping from `session_state`, `sessions`, or command results.
 - Use typed semantic command effects from `W-0004`; do not add workspace-index-specific URL synchronization rules here.
 - Use the target-specific new-session protocol from `W-0005`; do not add another sidebar-specific new-session packet here.
 - Send workspace index snapshots in invalid URL and cwd-required no-runtime states so saved workspaces and workspace actions can still render without a live runtime.
@@ -144,6 +150,7 @@ The server reports what happened. `pi-webui/public/url-state.mjs` remains respon
 
 - Do not reintroduce a large `navigation_state` or `sidebar_state` packet containing all sessions.
 - Do not infer workspace groups from arbitrary session cwd values.
+- Keep workspace index packet semantics in the browser-side store module, not in sidebar DOM rendering code.
 - If a workspace `listVersion` changes, loaded overflow pages for that workspace may be discarded and reloaded.
 - Prefer opaque cursors over offset pagination because session modification can reorder rows.
 - Keep malformed data handling simple: registry/session data should fail at existing boundaries rather than being loosely repaired in the workspace index.
