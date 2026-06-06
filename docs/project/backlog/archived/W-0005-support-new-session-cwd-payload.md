@@ -1,5 +1,7 @@
 # Split Runtime New Session And Open Cwd Commands
 
+Status: Implemented
+
 ## Summary
 
 Keep the pi-webui websocket `new_session` command aligned with Pi's runtime new-session lifecycle, and add a separate `open_cwd` command for opening a disposable cwd runtime.
