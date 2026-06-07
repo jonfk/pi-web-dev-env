@@ -1,5 +1,11 @@
 # Refactor pi-webui Workspace Index Protocol
 
+## Archived
+
+Superseded by the revised `docs/project/plans/PLAN-007-pi-webui-workspace-sidebar.md`.
+
+The original useful read-model requirements are now folded into `PLAN-007` as an HTTP sidebar API and SSE stale-notification design. The WebSocket packet protocol described below should not be implemented as a prerequisite for the sidebar.
+
 ## Summary
 
 Add a bounded, server-owned workspace index protocol before implementing `PLAN-007`.
