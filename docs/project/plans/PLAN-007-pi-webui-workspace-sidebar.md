@@ -10,8 +10,11 @@
 - Existing session listing helper: `pi-webui/src/server/session-info.ts`
 - Existing workspace registry: `pi-webui/src/server/workspace-store.ts`
 - Existing target transition handling: `pi-webui/src/server/index.ts`
-- Pre-work ticket: `docs/project/backlog/W-0004-add-typed-command-effects-for-url-state.md`
-- Pre-work ticket: `docs/project/backlog/W-0005-support-new-session-cwd-payload.md`
+- Accepted frontend migration ADR: `docs/project/adrs/0001-incremental-react-typescript-frontend-migration.md`
+- Accepted frontend transport ADR: `docs/project/adrs/0002-frontend-transport-ownership.md`
+- Pre-work ticket: `docs/project/backlog/archived/W-0004-add-typed-command-effects-for-url-state.md`
+- Pre-work ticket: `docs/project/backlog/archived/W-0005-support-new-session-cwd-payload.md`
+- Pre-implementation spike ticket: `docs/project/backlog/W-0009-prototype-sidebar-build-and-index-contract.md`
 - Follow-up ticket: `docs/project/backlog/W-0008-add-sidebar-auto-refresh-invalidation.md`
 - Existing URL/session tests: `pi-webui/test/url-state.test.mjs`
 - Existing workspace tests: `pi-webui/test/workspace-store.test.mjs`
@@ -25,7 +28,7 @@ Add a collapsible pi-webui sidebar that shows saved workspaces and the sessions 
 
 The sidebar is a separate navigation read model, not part of the active Pi runtime stream. Implement it as a React + TypeScript island that uses tRPC over HTTP for workspace/session reads, manual refresh for catalog freshness, and the existing WebSocket command channel only for active runtime mutations such as switching sessions or opening a workspace cwd.
 
-This plan assumes typed command effects from `docs/project/backlog/W-0004-add-typed-command-effects-for-url-state.md` and the explicit new-session cwd payload from `docs/project/backlog/W-0005-support-new-session-cwd-payload.md` already exist. Do not add sidebar-specific URL synchronization rules.
+This plan assumes typed command effects from `docs/project/backlog/archived/W-0004-add-typed-command-effects-for-url-state.md` and the explicit new-session cwd payload from `docs/project/backlog/archived/W-0005-support-new-session-cwd-payload.md` already exist. Do not add sidebar-specific URL synchronization rules.
 
 ## Locked Decisions
 
@@ -195,10 +198,14 @@ Add a small sidebar tRPC API surface to the existing pi-webui HTTP server. This 
   - Returns one additional page for a saved workspace.
   - `workspacePath` is an exact saved workspace path value passed as typed input.
   - `limit` must be `10` in v1.
+  - `cursor` is an opaque string owned by the server-side workspace index service.
 
 ### API Rules
 
 - tRPC input and output types are the canonical API contract for sidebar reads.
+- Serve the tRPC HTTP adapter from `/api/trpc`.
+- HTTP request dispatch order must be `/api/trpc`, then `/client/*`, then the existing public static fallback.
+- Use runtime validation at the tRPC input boundary, currently with `zod` schemas.
 - Absolute filesystem paths are data values, never route path components.
 - Do not encode workspace paths into REST route segments such as `/api/sidebar/workspaces/:workspacePath/sessions`.
 - If a non-tRPC REST fallback is ever added, use `GET /api/sidebar/workspace-sessions?workspacePath=...&cursor=...&limit=10`.
@@ -217,11 +224,11 @@ Add a small sidebar tRPC API surface to the existing pi-webui HTTP server. This 
 ### Files To Update
 
 - `pi-webui/src/server/index.ts`
-- `pi-webui/src/server/workspace-index.ts`
 - `pi-webui/src/server/session-info.ts` only if `SerializedSessionInfo` needs a small exported type or helper.
 
 ### Files To Add
 
+- `pi-webui/src/server/workspace-index.ts`
 - `pi-webui/src/server/trpc.ts`
 - `pi-webui/src/server/sidebar-router.ts`
 - `pi-webui/test/server-sidebar-router.test.mjs`
@@ -285,7 +292,7 @@ Add a real client build step for React + TypeScript.
   - `dist/client/chunks/*` for secondary chunks, if any
 - Keep the sidebar CSS as one emitted CSS file for v1.
 - Keep server TypeScript compilation working through `npm run build`.
-- Change `npm run build` to run `tsc -p tsconfig.server.json && vite build` before the existing executable chmod step.
+- Change `npm run build` to run `tsc -p tsconfig.server.json && tsc -p tsconfig.client.json && vite build` before the existing executable chmod step.
 - Do not add a Vite dev-server workflow or `npm run dev` requirement in this plan.
 - Keep `tsconfig.json` as the default project config that references or extends the server/client configs; do not leave it as the only compiler boundary.
 - Move shared compiler options into `tsconfig.base.json`.
@@ -336,6 +343,13 @@ send({ type: "open_cwd", cwd: workspace.path });
 send({ type: "switch_session", sessionPath: session.path });
 ```
 
+`public/app.js` owns bridge target notifications. It should notify subscribers after `currentSessionState` changes through `session_state`, after invalid or cwd-required startup clears the current target, and after other existing app-owned target updates. The React island must not parse WebSocket packets directly.
+
+The bridge's current target shape should be derived from existing app state:
+
+- `cwd`: the current `session_state.cwd` when present, or the connected cwd before the first session-state snapshot when available;
+- `sessionFile`: the current `session_state.sessionFile` when present, otherwise `null`.
+
 ### Client Implementation Sequence
 
 1. Add the React mount point next to the main chat surface.
@@ -366,6 +380,17 @@ send({ type: "switch_session", sessionPath: session.path });
 Bounded index responses are asynchronous catalog snapshots. The client must discard out-of-order bounded index responses using a monotonically increasing request id or equivalent latest-request guard. This prevents an older catalog request from replacing a newer catalog response after manual refetches.
 
 Manual refresh is the only v1 freshness mechanism. The visible catalog may become stale after workspace add/remove, `open_cwd`, `new_session`, `switch_session`, first durable session creation, session rename, prompt or turn events that update modified time or message count, external session file changes, and import/clone/fork flows that create or adopt sessions. Automatic sidebar refresh, SSE stale notifications, and server-side invalidation hooks are follow-up work tracked in `docs/project/backlog/W-0008-add-sidebar-auto-refresh-invalidation.md`, not PLAN-007 work.
+
+### Workspace Index Cursor Contract
+
+The workspace index service owns cursor and list-version semantics.
+
+- `listVersion` is a deterministic fingerprint of the sorted session list for one saved workspace.
+- A page cursor encodes `{ workspacePath, listVersion, offset }` as an opaque string.
+- Cursor decode must fail clearly for malformed cursors.
+- A page request must fail clearly if the cursor workspace does not match `workspacePath`.
+- A page request must return the cursor's `listVersion` so the client can discard pages for stale visible workspace lists.
+- The client must treat cursor strings as opaque data and must not construct or inspect them.
 
 ## Command Wiring
 
