@@ -12,10 +12,12 @@
 - Existing target transition handling: `pi-webui/src/server/index.ts`
 - Accepted frontend migration ADR: `docs/project/adrs/0001-incremental-react-typescript-frontend-migration.md`
 - Accepted frontend transport ADR: `docs/project/adrs/0002-frontend-transport-ownership.md`
+- Accepted session storage ADR: `docs/project/adrs/0003-pi-webui-canonical-session-store.md`
 - Pre-work ticket: `docs/project/backlog/archived/W-0004-add-typed-command-effects-for-url-state.md`
 - Pre-work ticket: `docs/project/backlog/archived/W-0005-support-new-session-cwd-payload.md`
 - Pre-implementation spike ticket: `docs/project/backlog/W-0009-prototype-sidebar-build-and-index-contract.md`
 - Follow-up ticket: `docs/project/backlog/W-0008-add-sidebar-auto-refresh-invalidation.md`
+- Follow-up ticket: `docs/project/backlog/W-0010-remove-pi-session-dir-override.md`
 - Existing URL/session tests: `pi-webui/test/url-state.test.mjs`
 - Existing workspace tests: `pi-webui/test/workspace-store.test.mjs`
 - Domain vocabulary: `pi-webui/CONTEXT.md`
@@ -55,6 +57,8 @@ This plan assumes typed command effects from `docs/project/backlog/archived/W-00
 - Do not infer sidebar workspace groups from arbitrary session cwd values.
 - Sessions appear under a workspace only when the session `cwd` exactly matches that workspace path.
 - Sessions outside saved workspaces remain accessible through existing session picker flows, but do not appear in the sidebar.
+- Sidebar session catalog reads use the server's canonical Pi agent session store under `PI_AGENT_DIR`; they do not honor CLI-style session directory overrides.
+- `WorkspaceIndexService` must not accept, read, or pass through `PI_SESSION_DIR` or any `sessionDir` override.
 - Desktop sidebar defaults to visible for first-time users.
 - Desktop sidebar supports show/hide only. Do not add a collapsed icon rail in v1.
 - Treat viewport widths of `900px` and wider as desktop for sidebar layout.
@@ -147,6 +151,14 @@ The sidebar catalog API must remain independent from the tab-local active runtim
 
 The exact session field names should follow `SerializedSessionInfo`. Do not create loose client-side aliases if the server already has a stable serialized shape.
 
+### Session Storage Contract
+
+pi-webui is a multi-workspace, multi-session server, not a single CLI invocation. Sidebar reads must therefore use the server-owned canonical session store rooted in the Pi agent dir. In practice, the workspace index service reads persisted session metadata from the default Pi agent session tree associated with `PI_AGENT_DIR`; it must not honor `PI_SESSION_DIR`, `sessionDir`, or other per-invocation session directory overrides.
+
+This deliberately differs from Pi CLI behavior. The CLI can scope a single invocation to a custom session directory, but the sidebar needs one coherent server-wide catalog across saved workspaces. Mixing `SessionManager.list(cwd, sessionDir)` with `SessionManager.listAll()` makes that catalog ambiguous because `listAll()` does not accept a `sessionDir`.
+
+The workspace index service should take an injectable session lister in tests. That injection is only a testability boundary for exact grouping, sorting, pagination, and cursor behavior; it is not a product hook for custom session storage.
+
 ### Bounded Index Response
 
 ```json
@@ -213,6 +225,7 @@ Add a small sidebar tRPC API surface to the existing pi-webui HTTP server. This 
 - The client must import the tRPC router type instead of duplicating sidebar API response interfaces by hand.
 - tRPC procedures must validate input at the API boundary and fail clearly for malformed input.
 - The tRPC read API is allowed to read saved workspaces and persisted session metadata.
+- The tRPC read API must read sidebar session metadata through the canonical Pi agent session store only; do not thread `sessionDir` through sidebar services or procedures.
 - The tRPC read API must not start or mutate a Pi runtime.
 - The tRPC read API must not update URL state.
 - Use clear errors for invalid cursors, unknown workspaces, or unsupported limits.
@@ -238,6 +251,8 @@ Add a small sidebar tRPC API surface to the existing pi-webui HTTP server. This 
 
 1. Add a `WorkspaceIndexService` or equivalent read-model module.
 2. Cover exact workspace/session grouping with focused server tests.
+   - Inject a fake session lister in tests instead of relying on `PI_SESSION_DIR`.
+   - Cover that service construction and sidebar procedures do not accept a `sessionDir` option.
 3. Add cursor encode/decode and list-version behavior for workspace session pages.
 4. Add the tRPC server adapter, app router, and shared router type export.
 5. Add the `sidebar.workspaceIndex` query procedure.
