@@ -16,7 +16,7 @@ Leaving `PI_SESSION_DIR` or an equivalent `sessionDir` override in the sidebar p
 
 pi-webui uses the Pi agent dir as its canonical session storage root.
 
-Server-wide session catalog features, including the workspace sidebar, read persisted session metadata only from the canonical Pi agent session store under `PI_AGENT_DIR`. They do not honor `PI_SESSION_DIR`, `sessionDir`, or other CLI-style per-invocation session directory overrides.
+Server-wide session catalog features, including the workspace sidebar, read persisted session metadata only from the canonical Pi agent session store under `PI_CODING_AGENT_DIR` or Pi's default agent dir. They do not honor `PI_SESSION_DIR`, `sessionDir`, or other CLI-style per-invocation session directory overrides.
 
 `WorkspaceIndexService` may accept an injectable session lister for tests. That injection is a testability boundary, not a product configuration hook.
 

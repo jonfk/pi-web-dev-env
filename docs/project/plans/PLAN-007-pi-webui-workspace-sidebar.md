@@ -15,14 +15,14 @@
 - Accepted session storage ADR: `docs/project/adrs/0003-pi-webui-canonical-session-store.md`
 - Pre-work ticket: `docs/project/backlog/archived/W-0004-add-typed-command-effects-for-url-state.md`
 - Pre-work ticket: `docs/project/backlog/archived/W-0005-support-new-session-cwd-payload.md`
+- Pre-work ticket: `docs/project/backlog/archived/W-0010-remove-pi-session-dir-override.md`
 - Pre-implementation spike ticket: `docs/project/backlog/W-0009-prototype-sidebar-build-and-index-contract.md`
 - Follow-up ticket: `docs/project/backlog/W-0008-add-sidebar-auto-refresh-invalidation.md`
-- Follow-up ticket: `docs/project/backlog/W-0010-remove-pi-session-dir-override.md`
 - Existing URL/session tests: `pi-webui/test/url-state.test.mjs`
 - Existing workspace tests: `pi-webui/test/workspace-store.test.mjs`
 - Domain vocabulary: `pi-webui/CONTEXT.md`
 
-Use this plan as the implementation checklist for the first workspace sidebar version after `W-0004` and `W-0005` have landed.
+Use this plan as the implementation checklist for the first workspace sidebar version after `W-0004`, `W-0005`, `W-0009`, and `W-0010` have landed.
 
 ## Goal
 
@@ -30,7 +30,7 @@ Add a collapsible pi-webui sidebar that shows saved workspaces and the sessions 
 
 The sidebar is a separate navigation read model, not part of the active Pi runtime stream. Implement it as a React + TypeScript island that uses tRPC over HTTP for workspace/session reads, manual refresh for catalog freshness, and the existing WebSocket command channel only for active runtime mutations such as switching sessions or opening a workspace cwd.
 
-This plan assumes typed command effects from `docs/project/backlog/archived/W-0004-add-typed-command-effects-for-url-state.md` and the explicit new-session cwd payload from `docs/project/backlog/archived/W-0005-support-new-session-cwd-payload.md` already exist. Do not add sidebar-specific URL synchronization rules.
+This plan assumes typed command effects from `docs/project/backlog/archived/W-0004-add-typed-command-effects-for-url-state.md`, the explicit new-session cwd payload from `docs/project/backlog/archived/W-0005-support-new-session-cwd-payload.md`, the sidebar build/index prototype from `docs/project/backlog/W-0009-prototype-sidebar-build-and-index-contract.md`, and canonical session storage from `docs/project/backlog/archived/W-0010-remove-pi-session-dir-override.md` already exist. Do not add sidebar-specific URL synchronization rules.
 
 ## Locked Decisions
 
@@ -52,12 +52,13 @@ This plan assumes typed command effects from `docs/project/backlog/archived/W-00
 - Use tRPC over HTTP for sidebar read models.
 - Do not add sidebar SSE stale notifications in v1.
 - Sidebar index freshness is manual in v1: fetch the bounded index on mount, page reload, and explicit sidebar refresh action.
+- Manual refresh always replaces the visible bounded index and resets loaded overflow pages for every workspace.
 - Keep active runtime mutations on the existing WebSocket command channel for v1.
 - Show only saved workspaces as top-level sidebar groups.
 - Do not infer sidebar workspace groups from arbitrary session cwd values.
 - Sessions appear under a workspace only when the session `cwd` exactly matches that workspace path.
 - Sessions outside saved workspaces remain accessible through existing session picker flows, but do not appear in the sidebar.
-- Sidebar session catalog reads use the server's canonical Pi agent session store under `PI_AGENT_DIR`; they do not honor CLI-style session directory overrides.
+- Sidebar session catalog reads use the server's canonical Pi agent session store under `PI_CODING_AGENT_DIR` or Pi's default agent dir; they do not honor CLI-style session directory overrides.
 - `WorkspaceIndexService` must not accept, read, or pass through `PI_SESSION_DIR` or any `sessionDir` override.
 - Desktop sidebar defaults to visible for first-time users.
 - Desktop sidebar supports show/hide only. Do not add a collapsed icon rail in v1.
@@ -86,7 +87,7 @@ This plan assumes typed command effects from `docs/project/backlog/archived/W-00
 - Below `900px`, the sidebar opens over the chat as a drawer.
 - The drawer closes when the user clicks the backdrop, presses Escape, selects a session, or starts a new workspace session.
 - The sidebar header renders a manual refresh action.
-- Saved workspaces render in a stable deterministic order, initially alphabetical by workspace name.
+- Saved workspaces render in a stable deterministic order.
 - Each workspace group renders:
   - workspace name
   - compact display path
@@ -103,7 +104,13 @@ This plan assumes typed command effects from `docs/project/backlog/archived/W-00
 - Active session highlighting is applied only to loaded session rows. If the active session is outside the loaded recent window or loaded overflow pages, do not create a synthetic active session row in v1.
 - Workspace groups with `hasMore` show a compact `show more` action.
 - Clicking `show more` loads the next 10 workspace sessions and appends them to that workspace if the returned `listVersion` still matches the workspace list version.
-- If a workspace list version changes after additional pages were loaded, discard loaded overflow pages for that workspace and return to the refreshed recent window.
+- If a `show more` response returns a `listVersion` that differs from the visible workspace list version, leave the visible rows unchanged and require manual refresh for a fresh bounded window.
+- Manual refresh discards all loaded overflow pages even when a workspace `listVersion` is unchanged.
+- While the initial sidebar index is loading, show the sidebar shell with a compact loading state rather than blocking the rest of the app.
+- If the initial sidebar index load fails, show a compact sidebar error state with the same manual refresh action as the retry path.
+- While manual refresh is in flight, keep the previous catalog visible, mark refresh as busy, and ignore additional refresh clicks until the request settles.
+- While a workspace `show more` request is in flight, keep the current rows visible, mark only that workspace page action as busy, and ignore additional `show more` clicks for the same workspace until the request settles.
+- A failed `show more` request should leave the existing workspace rows unchanged and expose a compact retry affordance through the same `show more` action.
 - A workspace group shows an active workspace state when the active cwd exactly matches its path.
 - If the active cwd matches a saved workspace but the current session is not durable yet, the workspace group remains highlighted and no fake session row is created.
 - Empty workspace groups remain visible and show only the workspace header plus new-session action.
@@ -147,13 +154,15 @@ The sidebar read model must not reconstruct workspace grouping from `session_sta
 - session counts per saved workspace;
 - cursor-based pagination for additional workspace sessions, returning 10 additional sessions per page request.
 
+Saved workspace ordering is deterministic and server-owned. Sort workspaces by stored workspace name using simple case-sensitive code-point comparison, then by absolute workspace path as a tie-breaker. Do not use locale-dependent ordering, creation time, updated time, current active workspace, or session recency for v1 ordering.
+
 The sidebar catalog API must remain independent from the tab-local active runtime target. Active workspace and active session state are owned by the client bridge, not by the workspace/session listing response.
 
 The exact session field names should follow `SerializedSessionInfo`. Do not create loose client-side aliases if the server already has a stable serialized shape.
 
 ### Session Storage Contract
 
-pi-webui is a multi-workspace, multi-session server, not a single CLI invocation. Sidebar reads must therefore use the server-owned canonical session store rooted in the Pi agent dir. In practice, the workspace index service reads persisted session metadata from the default Pi agent session tree associated with `PI_AGENT_DIR`; it must not honor `PI_SESSION_DIR`, `sessionDir`, or other per-invocation session directory overrides.
+pi-webui is a multi-workspace, multi-session server, not a single CLI invocation. Sidebar reads must therefore use the server-owned canonical session store rooted in the Pi agent dir. In practice, the workspace index service reads persisted session metadata from the default Pi agent session tree associated with `PI_CODING_AGENT_DIR` or Pi's default agent dir; it must not honor `PI_SESSION_DIR`, `sessionDir`, or other per-invocation session directory overrides.
 
 This deliberately differs from Pi CLI behavior. The CLI can scope a single invocation to a custom session directory, but the sidebar needs one coherent server-wide catalog across saved workspaces. Mixing `SessionManager.list(cwd, sessionDir)` with `SessionManager.listAll()` makes that catalog ambiguous because `listAll()` does not accept a `sessionDir`.
 
@@ -163,7 +172,6 @@ The workspace index service should take an injectable session lister in tests. T
 
 ```json
 {
-  "revision": 12,
   "workspaces": [
     {
       "name": "project",
@@ -176,7 +184,7 @@ The workspace index service should take an injectable session lister in tests. T
         "sessions": [],
         "nextCursor": "opaque-cursor",
         "hasMore": true,
-        "listVersion": 4
+        "listVersion": "session-list-fingerprint"
       }
     }
   ]
@@ -188,7 +196,7 @@ The workspace index service should take an injectable session lister in tests. T
 ```json
 {
   "workspacePath": "/abs/workspace",
-  "listVersion": 4,
+  "listVersion": "session-list-fingerprint",
   "sessions": [],
   "nextCursor": "opaque-cursor-2",
   "hasMore": true
@@ -314,10 +322,12 @@ Add a real client build step for React + TypeScript.
 - Make `tsconfig.server.json` include the existing server and extension TypeScript sources and emit to `dist`.
 - Make `tsconfig.client.json` include only `src/client/**/*.ts` and `src/client/**/*.tsx` and use `noEmit` for Vite type-checking.
 - Add exactly one sidebar mount point in `public/index.html`: `#workspace-sidebar-root`.
-- Update `public/index.html` to load the React island through stable built assets:
+- Place `#workspace-sidebar-root` inside `.app-shell` before `<main class="main">`.
+- Update `public/index.html` to load `/app.js` before the React island and to load the React island through stable built assets:
 
 ```html
 <link rel="stylesheet" href="/client/sidebar.css" />
+<script type="module" src="/app.js"></script>
 <script type="module" src="/client/sidebar.js"></script>
 ```
 
@@ -325,16 +335,11 @@ Add a real client build step for React + TypeScript.
 - Keep `package.json.files` relying on the existing `dist` entry; do not add generated client assets to `public`.
 - Verify `npm run build --prefix pi-webui` produces `dist/server/index.js`, `dist/client/sidebar.js`, and `dist/client/sidebar.css`.
 
-### Build Integration Spike
+### Pre-Implementation Prototype
 
-A separate prototype is not required before implementation. If build wiring feels risky during implementation, do a tiny build integration spike first:
+Complete `docs/project/backlog/W-0009-prototype-sidebar-build-and-index-contract.md` before implementing the full sidebar UI. That prototype owns proving the Vite React TypeScript island build, `/client/*` static serving, ordinary static 404 behavior for missing generated assets, and the workspace index contract for exact grouping, stable cursors, and list-version semantics.
 
-1. Add an empty `#workspace-sidebar-root` mount point.
-2. Add a minimal React sidebar island that renders a static label and imports `styles.css`.
-3. Run `npm run build --prefix pi-webui`.
-4. Start `node pi-webui/dist/server/index.js`.
-5. Confirm `/`, `/app.js`, `/client/sidebar.js`, and `/client/sidebar.css` are served.
-6. Remove the static label as soon as the real sidebar state is wired.
+Do not separately prototype the runtime bridge or DOM placement unless PLAN-007 implementation uncovers a concrete load-order, state notification, or layout failure. The bridge and DOM placement are small enough to specify as contracts in this plan and verify during normal implementation.
 
 ## Client Plan
 
@@ -365,9 +370,13 @@ The bridge's current target shape should be derived from existing app state:
 - `cwd`: the current `session_state.cwd` when present, or the connected cwd before the first session-state snapshot when available;
 - `sessionFile`: the current `session_state.sessionFile` when present, otherwise `null`.
 
+Expose the bridge as a single browser global owned by `public/app.js`, `window.piWebuiSidebarBridge`. `public/index.html` must load `/app.js` before `/client/sidebar.js` so the bridge exists before the React island mounts. If the global is missing, the sidebar entry should fail loudly during development rather than silently creating a second runtime authority.
+
+Place `#workspace-sidebar-root` inside `.app-shell` as a sibling before `<main class="main">`. On desktop, the React island renders the docked sidebar into that root and toggles `.app-shell.sidebar-visible` for the two-column shell. On mobile, the same root renders the off-canvas drawer and backdrop. Do not place the sidebar root outside `.app-shell`, inside `.main`, or near the modal/toast layers.
+
 ### Client Implementation Sequence
 
-1. Add the React mount point next to the main chat surface.
+1. Add `#workspace-sidebar-root` inside `.app-shell` before `<main class="main">`.
 2. Add the sidebar runtime bridge in `public/app.js`.
 3. Mount the React sidebar island from the built client entry.
 4. Track sidebar UI state:
@@ -400,11 +409,13 @@ Manual refresh is the only v1 freshness mechanism. The visible catalog may becom
 
 The workspace index service owns cursor and list-version semantics.
 
-- `listVersion` is a deterministic fingerprint of the sorted session list for one saved workspace.
+- `listVersion` is a deterministic string fingerprint of the sorted session list for one saved workspace.
+- The fingerprint should include only the fields that affect pagination and visible session row freshness in v1: session path, modified timestamp, message count, first message, and display name.
+- The fingerprint should not include active target state, workspace expansion state, loaded page offset, or client-local visibility state.
 - A page cursor encodes `{ workspacePath, listVersion, offset }` as an opaque string.
 - Cursor decode must fail clearly for malformed cursors.
 - A page request must fail clearly if the cursor workspace does not match `workspacePath`.
-- A page request must return the cursor's `listVersion` so the client can discard pages for stale visible workspace lists.
+- A page request must recompute and return the current workspace `listVersion` so the client can discard pages for stale visible workspace lists.
 - The client must treat cursor strings as opaque data and must not construct or inspect them.
 
 ## Command Wiring
@@ -493,6 +504,10 @@ Confirm `W-0004` tests cover typed runtime-target command effects driving URL st
 
 Confirm `W-0005` tests cover `open_cwd` creating a disposable session for an explicit workspace cwd and returning the expected runtime target effect.
 
+Confirm `W-0010` tests cover pi-webui using the canonical Pi agent session store without `PI_SESSION_DIR` or `sessionDir` product paths.
+
+Confirm `W-0009` tests cover the sidebar build/static-serving prototype and the workspace index grouping, cursor, and list-version contract.
+
 ### Server Tests
 
 Add focused tests for the workspace index service and tRPC API:
@@ -501,15 +516,19 @@ Add focused tests for the workspace index service and tRPC API:
 - Sessions from unsaved cwd values are omitted.
 - Sessions with cwd values that merely share a prefix are omitted.
 - Workspace groups are sorted deterministically.
+- Workspace groups sort by stored workspace name, then absolute workspace path.
 - Sessions inside a workspace are sorted by modified time descending.
 - Empty saved workspaces remain in the returned payload.
 - Initial workspace session windows are capped at 5 sessions.
 - Workspace index requests do not accept active target hints and do not return active-session exception rows.
 - Workspace session pagination uses stable cursors and list versions.
+- Workspace list versions change when visible row freshness fields change.
+- Workspace list versions do not change for active target or client-local UI state.
 - Workspace session pagination returns 10 additional sessions per `show more` request.
 - Unknown workspace page requests fail clearly.
 - Unsupported page limits fail clearly.
 - Malformed cursors fail clearly.
+- Cursor workspace mismatches fail clearly.
 - tRPC workspace-index requests do not create or mutate a runtime.
 
 ### Client Tests
@@ -522,12 +541,19 @@ Add focused tests for sidebar state and tRPC helpers:
 - Workspace expansion state defaults missing workspace paths to expanded.
 - Workspace expansion state persists by workspace path.
 - Sidebar command selection calls the expected bridge function.
+- Sidebar reads the bridge from `window.piWebuiSidebarBridge`.
 - Bounded index fetch replaces store state.
 - Out-of-order bounded index responses are discarded.
 - Sidebar manual refresh triggers a bounded index refetch.
+- Sidebar manual refresh resets all loaded overflow pages.
+- Initial bounded index loading renders a loading state without blocking the app.
+- Initial bounded index failure renders a compact error state with refresh retry.
+- Manual refresh ignores duplicate refresh actions while a refresh request is in flight.
 - Current target bridge changes trigger active state refresh without forcing a bounded index refetch.
 - Workspace session pages append only when `listVersion` matches.
-- Workspace session pages with stale `listVersion` are ignored or trigger the documented reset behavior.
+- Workspace session pages with stale `listVersion` leave visible rows unchanged.
+- Duplicate `show more` clicks for the same workspace are ignored while a workspace page request is in flight.
+- Failed `show more` requests leave existing workspace rows unchanged.
 - `show more` sends the workspace path, cursor, and limit through the tRPC API.
 
 If client DOM tests would be brittle, prefer manual browser verification for layout and keep unit tests on pure state helpers.
@@ -560,6 +586,7 @@ Build verification should confirm:
 Manual browser verification should cover:
 
 - First desktop load shows the sidebar.
+- `#workspace-sidebar-root` is inside `.app-shell` before the main chat surface.
 - Desktop layout applies at `900px` and wider.
 - Mobile drawer layout applies below `900px`.
 - Desktop toggle hides the sidebar.
@@ -577,6 +604,7 @@ Manual browser verification should cover:
 - Workspaces with additional sessions show `show more`.
 - `show more` loads and appends 10 additional sessions for that workspace.
 - Manual refresh refetches the bounded workspace index.
+- Manual refresh resets loaded overflow pages.
 - Stale workspace pages do not corrupt the visible session list.
 - Workspace `+` starts a new session in that workspace and updates the URL to cwd state.
 - Session row click switches sessions and updates the URL to session state.
@@ -593,17 +621,23 @@ Manual browser verification should cover:
 ## Acceptance Criteria
 
 - Sidebar ships as a React + TypeScript island mounted at `#workspace-sidebar-root`.
+- `#workspace-sidebar-root` is placed inside `.app-shell` before `<main class="main">`.
+- `public/app.js` exposes `window.piWebuiSidebarBridge` before `/client/sidebar.js` mounts.
 - `npm run build --prefix pi-webui` emits `dist/server/index.js`, `dist/client/sidebar.js`, and `dist/client/sidebar.css`.
 - `/client/sidebar.js` and `/client/sidebar.css` are served from `/client/*` with no-cache headers.
 - Saved workspaces are the only top-level sidebar groups.
 - Sessions appear under a workspace only when `session.cwd === workspace.path`.
+- Workspaces are sorted by stored workspace name, then absolute workspace path.
 - Workspace groups initially show at most 5 recent sessions.
 - Workspace groups can load 10 more sessions at a time through the tRPC `sidebar.workspaceSessions` procedure.
 - Desktop sidebar defaults visible and persists show/hide preference.
 - Mobile drawer defaults hidden and does not persist open state.
 - Workspace expansion defaults to expanded and persists by workspace path.
 - Manual refresh refetches the bounded workspace index.
+- Manual refresh resets all loaded overflow pages.
+- Initial load, refresh, and `show more` loading/error states follow the minimal v1 rules.
 - Out-of-order bounded index responses cannot replace newer sidebar state.
+- Stale workspace page responses cannot append rows to the visible workspace list.
 - Active workspace and active session highlighting comes from the runtime bridge without forcing a catalog refetch.
 - Active sessions outside the loaded recent window are not rendered as synthetic rows.
 - Workspace new-session and session-switch actions use the existing WebSocket command channel.

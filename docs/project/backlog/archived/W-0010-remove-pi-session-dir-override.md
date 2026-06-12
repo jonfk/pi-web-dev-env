@@ -1,5 +1,7 @@
 # Remove pi-webui Session Directory Overrides
 
+Status: Implemented 2026-06-11
+
 ## Summary
 
 Remove pi-webui support for `PI_SESSION_DIR`, `PI_AGENT_DIR`, and any equivalent `sessionDir` override so sessions and server-owned Pi state are loaded only from Pi's canonical agent dir.
