@@ -146,6 +146,27 @@ The sidebar has three separate responsibilities:
 
 This boundary keeps the sidebar independent from the main chat runtime while avoiding a second mutation path for the current tab's active Pi runtime.
 
+## Implementation Phases
+
+Implement PLAN-007 in focused phases. Keep `W-0009` separate from the full sidebar UI work; later phases may be separate PRs or combined when the diff stays easy to review.
+
+1. Prerequisite prototype
+   - Complete `docs/project/backlog/W-0009-prototype-sidebar-build-and-index-contract.md`.
+   - Keep the proven Vite build, `/client/*` serving, and workspace index contract as the foundation for this plan.
+   - Do not build the real sidebar UI in this phase.
+2. Server read API
+   - Finalize `WorkspaceIndexService`, tRPC router/procedures, `/api/trpc` route ordering, and server tests.
+   - Preserve the transport boundary: tRPC reads only, WebSocket runtime mutations only.
+3. Shell integration
+   - Add the sidebar DOM placement, stable asset load order, and `window.piWebuiSidebarBridge`.
+   - Mount a minimal sidebar island against the real bridge before adding full UI state.
+4. Sidebar UI state
+   - Implement workspace groups, expansion persistence, manual refresh, pagination, active highlighting, and loading/error/concurrency states.
+   - Keep catalog freshness manual in v1.
+5. Verification
+   - Run build and test verification.
+   - Complete desktop/mobile manual checks and regression checks for URL transitions, modal pickers, composer, slash menu, file completion, modal, and toast layers.
+
 ## Data Model
 
 The sidebar read model must not reconstruct workspace grouping from `session_state`, `sessions`, or command-specific picker payloads. The server-side read model owns:
