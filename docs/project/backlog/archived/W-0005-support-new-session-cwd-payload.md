@@ -8,7 +8,7 @@ Keep the pi-webui websocket `new_session` command aligned with Pi's runtime new-
 
 ## Context
 
-`docs/project/plans/PLAN-007-pi-webui-workspace-sidebar.md` needs workspace-level new-session actions. A sidebar click on a saved workspace should be able to open a disposable runtime in that workspace without first switching through a separate slash command.
+`docs/project/plans/archived/PLAN-007-pi-webui-workspace-sidebar.md` needs workspace-level new-session actions. A sidebar click on a saved workspace should be able to open a disposable runtime in that workspace without first switching through a separate slash command.
 
 `new_session` resolves from the existing Selected Runtime Target. That is correct for the normal "new session here" command because it calls Pi's `runtime.newSession()` and preserves `session_before_switch("new")`, cancellation, and `session_start.reason = "new"`.
 

@@ -6,7 +6,7 @@ Add automatic workspace sidebar refresh after `PLAN-007` ships with manual refre
 
 ## Context
 
-`docs/project/plans/PLAN-007-pi-webui-workspace-sidebar.md` intentionally scopes v1 sidebar freshness to mount, page reload, and explicit user refresh. That keeps the first sidebar implementation smaller and avoids underspecified invalidation hooks.
+`docs/project/plans/archived/PLAN-007-pi-webui-workspace-sidebar.md` intentionally scopes v1 sidebar freshness to mount, page reload, and explicit user refresh. That keeps the first sidebar implementation smaller and avoids underspecified invalidation hooks.
 
 The known limitation is that workspace/session catalog rows, counts, ordering, modified times, and message counts can drift stale after server-side workspace or session changes.
 

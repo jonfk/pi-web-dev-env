@@ -2,7 +2,7 @@
 
 ## Archived
 
-Superseded by the revised `docs/project/plans/PLAN-007-pi-webui-workspace-sidebar.md`.
+Superseded by the revised `docs/project/plans/archived/PLAN-007-pi-webui-workspace-sidebar.md`.
 
 The original useful read-model requirements are now folded into `PLAN-007` as an HTTP sidebar API and SSE stale-notification design. The WebSocket packet protocol described below should not be implemented as a prerequisite for the sidebar.
 
@@ -12,7 +12,7 @@ Add a bounded, server-owned workspace index protocol before implementing `PLAN-0
 
 ## Context
 
-`docs/project/plans/PLAN-007-pi-webui-workspace-sidebar.md` originally proposed a sidebar-specific state packet. That risks duplicating information from `session_state`, `sessions`, and command results, and it would grow poorly if workspaces have many sessions.
+`docs/project/plans/archived/PLAN-007-pi-webui-workspace-sidebar.md` originally proposed a sidebar-specific state packet. That risks duplicating information from `session_state`, `sessions`, and command results, and it would grow poorly if workspaces have many sessions.
 
 The sidebar needs canonical facts about saved workspaces, recent sessions per workspace, session counts, and the current runtime target. Those facts should be owned by a reusable workspace index protocol rather than by sidebar rendering code.
 

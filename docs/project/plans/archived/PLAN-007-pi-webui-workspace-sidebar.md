@@ -1,5 +1,7 @@
 # PLAN-007: pi-webui Workspace Sidebar
 
+Status: Implemented 2026-06-12
+
 ## Source Material
 
 - Brainstorming decision thread for the pi-webui workspace/session sidebar.
@@ -16,7 +18,7 @@
 - Pre-work ticket: `docs/project/backlog/archived/W-0004-add-typed-command-effects-for-url-state.md`
 - Pre-work ticket: `docs/project/backlog/archived/W-0005-support-new-session-cwd-payload.md`
 - Pre-work ticket: `docs/project/backlog/archived/W-0010-remove-pi-session-dir-override.md`
-- Pre-implementation spike ticket: `docs/project/backlog/W-0009-prototype-sidebar-build-and-index-contract.md`
+- Pre-implementation spike ticket: `docs/project/backlog/archived/W-0009-prototype-sidebar-build-and-index-contract.md`
 - Follow-up ticket: `docs/project/backlog/W-0008-add-sidebar-auto-refresh-invalidation.md`
 - Existing URL/session tests: `pi-webui/test/url-state.test.mjs`
 - Existing workspace tests: `pi-webui/test/workspace-store.test.mjs`
@@ -30,7 +32,7 @@ Add a collapsible pi-webui sidebar that shows saved workspaces and the sessions 
 
 The sidebar is a separate navigation read model, not part of the active Pi runtime stream. Implement it as a React + TypeScript island that uses tRPC over HTTP for workspace/session reads, manual refresh for catalog freshness, and the existing WebSocket command channel only for active runtime mutations such as switching sessions or opening a workspace cwd.
 
-This plan assumes typed command effects from `docs/project/backlog/archived/W-0004-add-typed-command-effects-for-url-state.md`, the explicit new-session cwd payload from `docs/project/backlog/archived/W-0005-support-new-session-cwd-payload.md`, the sidebar build/index prototype from `docs/project/backlog/W-0009-prototype-sidebar-build-and-index-contract.md`, and canonical session storage from `docs/project/backlog/archived/W-0010-remove-pi-session-dir-override.md` already exist. Do not add sidebar-specific URL synchronization rules.
+This plan assumes typed command effects from `docs/project/backlog/archived/W-0004-add-typed-command-effects-for-url-state.md`, the explicit new-session cwd payload from `docs/project/backlog/archived/W-0005-support-new-session-cwd-payload.md`, the sidebar build/index prototype from `docs/project/backlog/archived/W-0009-prototype-sidebar-build-and-index-contract.md`, and canonical session storage from `docs/project/backlog/archived/W-0010-remove-pi-session-dir-override.md` already exist. Do not add sidebar-specific URL synchronization rules.
 
 ## Locked Decisions
 
@@ -151,7 +153,7 @@ This boundary keeps the sidebar independent from the main chat runtime while avo
 Implement PLAN-007 in focused phases. Keep `W-0009` separate from the full sidebar UI work; later phases may be separate PRs or combined when the diff stays easy to review.
 
 1. Prerequisite prototype
-   - Complete `docs/project/backlog/W-0009-prototype-sidebar-build-and-index-contract.md`.
+   - Complete `docs/project/backlog/archived/W-0009-prototype-sidebar-build-and-index-contract.md`.
    - Keep the proven Vite build, `/client/*` serving, and workspace index contract as the foundation for this plan.
    - Do not build the real sidebar UI in this phase.
 2. Server read API
@@ -361,7 +363,7 @@ Add a real client build step for React + TypeScript.
 
 ### Pre-Implementation Prototype
 
-Complete `docs/project/backlog/W-0009-prototype-sidebar-build-and-index-contract.md` before implementing the full sidebar UI. That prototype owns proving the Vite React TypeScript island build, `/client/*` static serving, ordinary static 404 behavior for missing generated assets, and the workspace index contract for exact grouping, stable cursors, and list-version semantics.
+Complete `docs/project/backlog/archived/W-0009-prototype-sidebar-build-and-index-contract.md` before implementing the full sidebar UI. That prototype owns proving the Vite React TypeScript island build, `/client/*` static serving, ordinary static 404 behavior for missing generated assets, and the workspace index contract for exact grouping, stable cursors, and list-version semantics.
 
 Do not separately prototype the runtime bridge or DOM placement unless PLAN-007 implementation uncovers a concrete load-order, state notification, or layout failure. The bridge and DOM placement are small enough to specify as contracts in this plan and verify during normal implementation.
 

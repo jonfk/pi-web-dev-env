@@ -14,7 +14,7 @@ ADR-0003 establishes that pi-webui is a multi-workspace, multi-session server wi
 
 `PLAN-007` relies on that decision for the workspace sidebar catalog:
 
-- `docs/project/plans/PLAN-007-pi-webui-workspace-sidebar.md`
+- `docs/project/plans/archived/PLAN-007-pi-webui-workspace-sidebar.md`
 
 Implementation research found that `PI_AGENT_DIR` is a pi-webui-specific alias, not Pi's canonical environment variable. Pi's SDK derives its canonical agent-dir variable as `PI_CODING_AGENT_DIR` and its default session APIs read sessions from `getAgentDir()/sessions`.
 

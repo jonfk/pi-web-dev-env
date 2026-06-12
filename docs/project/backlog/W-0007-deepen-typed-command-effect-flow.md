@@ -15,7 +15,7 @@ Refactor the current `W-0004` typed command-effect pre-work so target-changing c
 
 `docs/project/backlog/W-0005-support-new-session-cwd-payload.md` will add the target-changing `open_cwd` path for workspace sidebar actions. Before adding that path, concentrate the target-changing command result rules so new callers do not need to remember how URL effects are emitted.
 
-This ticket covers the architectural cleanup identified while reviewing the `W-0004` staged changes against `docs/project/plans/PLAN-007-pi-webui-workspace-sidebar.md`. The future browser-side workspace index store remains part of `W-0006` and sidebar implementation work, not this ticket.
+This ticket covers the architectural cleanup identified while reviewing the `W-0004` staged changes against `docs/project/plans/archived/PLAN-007-pi-webui-workspace-sidebar.md`. The future browser-side workspace index store remains part of `W-0006` and sidebar implementation work, not this ticket.
 
 ## Desired Outcome
 

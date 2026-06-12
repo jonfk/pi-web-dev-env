@@ -1,12 +1,14 @@
 # Prototype Sidebar Build And Index Contract
 
+Status: Implemented 2026-06-12
+
 ## Summary
 
 Run two small pre-implementation spikes for `PLAN-007` before building the full pi-webui workspace sidebar.
 
 ## Context
 
-`docs/project/plans/PLAN-007-pi-webui-workspace-sidebar.md` is coherent, but two areas should be proven in isolation before the full sidebar implementation:
+`docs/project/plans/archived/PLAN-007-pi-webui-workspace-sidebar.md` is coherent, but two areas should be proven in isolation before the full sidebar implementation:
 
 - the Vite React TypeScript island build and static serving integration;
 - the workspace index read-model contract, especially exact workspace grouping, cursor encoding, and list-version semantics.

@@ -10,7 +10,7 @@ Replace browser-side command-name inference for pi-webui URL updates with typed 
 
 `pi-webui/public/url-state.mjs` currently decides URL behavior from command names such as `new_session`, `switch_session`, `slash:cwd`, and `select_session`. This makes URL updates depend on browser-maintained knowledge of which commands change the selected runtime target.
 
-`docs/project/plans/PLAN-007-pi-webui-workspace-sidebar.md` may add new sidebar-driven navigation actions. If those actions keep using command-name inference, every new command shape must be mirrored in URL-state policy and can drift from the server-side target transition result.
+`docs/project/plans/archived/PLAN-007-pi-webui-workspace-sidebar.md` may add new sidebar-driven navigation actions. If those actions keep using command-name inference, every new command shape must be mirrored in URL-state policy and can drift from the server-side target transition result.
 
 The cleaner boundary is:
 
