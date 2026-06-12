@@ -76,7 +76,9 @@ This plan assumes typed command effects from `docs/project/backlog/archived/W-00
 - Clicking a session switches to that session through `switch_session`.
 - Existing URL Session Pointer and URL Cwd Pointer behavior remains the source of truth for durable navigation.
 - Each workspace initially shows at most the 5 most recent sessions.
-- Workspaces with more matching sessions expose a `show more` action that requests 10 additional sessions for that workspace.
+- Workspaces with more matching sessions expose a `show more` action that requests 10 additional sessions for that workspace using the server-provided `nextCursor`.
+- `sidebar.workspaceSessions` requires a cursor; missing cursors fail at the API boundary instead of defaulting to the first overflow page.
+- Stale workspace session cursors fail clearly on the server; manual refresh is the recovery path.
 - Existing modal pickers remain available and are not replaced by this feature.
 
 ## First-Version Behavior
@@ -103,14 +105,15 @@ This plan assumes typed command effects from `docs/project/backlog/archived/W-00
 - Workspace groups initially render the bounded `sessionsWindow` supplied by the sidebar API.
 - Active session highlighting is applied only to loaded session rows. If the active session is outside the loaded recent window or loaded overflow pages, do not create a synthetic active session row in v1.
 - Workspace groups with `hasMore` show a compact `show more` action.
-- Clicking `show more` loads the next 10 workspace sessions and appends them to that workspace if the returned `listVersion` still matches the workspace list version.
-- If a `show more` response returns a `listVersion` that differs from the visible workspace list version, leave the visible rows unchanged and require manual refresh for a fresh bounded window.
+- Clicking `show more` sends the workspace's current `nextCursor`, loads the next 10 workspace sessions, and appends them to that workspace.
+- If the workspace session list changed since the cursor was issued, the server rejects the stale cursor. Leave the visible rows unchanged and require manual refresh for a fresh bounded window.
 - Manual refresh discards all loaded overflow pages even when a workspace `listVersion` is unchanged.
 - While the initial sidebar index is loading, show the sidebar shell with a compact loading state rather than blocking the rest of the app.
 - If the initial sidebar index load fails, show a compact sidebar error state with the same manual refresh action as the retry path.
 - While manual refresh is in flight, keep the previous catalog visible, mark refresh as busy, and ignore additional refresh clicks until the request settles.
 - While a workspace `show more` request is in flight, keep the current rows visible, mark only that workspace page action as busy, and ignore additional `show more` clicks for the same workspace until the request settles.
-- A failed `show more` request should leave the existing workspace rows unchanged and expose a compact retry affordance through the same `show more` action.
+- A transient failed `show more` request should leave the existing workspace rows unchanged and expose a compact retry affordance through the same `show more` action.
+- A stale-cursor `show more` failure should leave the existing workspace rows unchanged and expose the manual refresh path instead of retrying the same cursor.
 - A workspace group shows an active workspace state when the active cwd exactly matches its path.
 - If the active cwd matches a saved workspace but the current session is not durable yet, the workspace group remains highlighted and no fake session row is created.
 - Empty workspace groups remain visible and show only the workspace header plus new-session action.
@@ -218,7 +221,7 @@ Add a small sidebar tRPC API surface to the existing pi-webui HTTP server. This 
   - Returns one additional page for a saved workspace.
   - `workspacePath` is an exact saved workspace path value passed as typed input.
   - `limit` must be `10` in v1.
-  - `cursor` is an opaque string owned by the server-side workspace index service.
+  - `cursor` is required and must be an opaque string previously returned by the server-side workspace index service.
 
 ### API Rules
 
@@ -236,7 +239,7 @@ Add a small sidebar tRPC API surface to the existing pi-webui HTTP server. This 
 - The tRPC read API must read sidebar session metadata through the canonical Pi agent session store only; do not thread `sessionDir` through sidebar services or procedures.
 - The tRPC read API must not start or mutate a Pi runtime.
 - The tRPC read API must not update URL state.
-- Use clear errors for invalid cursors, unknown workspaces, or unsupported limits.
+- Use clear errors for missing cursors, invalid cursors, stale cursors, unknown workspaces, or unsupported limits.
 - Unknown workspace paths must fail clearly instead of being normalized or loosely matched.
 - Do not loosely parse malformed client input; fail at the API boundary.
 
@@ -261,7 +264,7 @@ Add a small sidebar tRPC API surface to the existing pi-webui HTTP server. This 
 2. Cover exact workspace/session grouping with focused server tests.
    - Inject a fake session lister in tests instead of relying on `PI_SESSION_DIR`.
    - Cover that service construction and sidebar procedures do not accept a `sessionDir` option.
-3. Add cursor encode/decode and list-version behavior for workspace session pages.
+3. Add cursor encode/decode and list-version behavior for workspace session pages, including clear stale-cursor rejection.
 4. Add the tRPC server adapter, app router, and shared router type export.
 5. Add the `sidebar.workspaceIndex` query procedure.
 6. Add the `sidebar.workspaceSessions` query procedure.
@@ -394,7 +397,7 @@ Place `#workspace-sidebar-root` inside `.app-shell` as a sibling before `<main c
 11. Wire workspace new-session action to `bridge.openCwd(workspace.path)`.
 12. Wire session row click to `bridge.switchSession(session.path)`.
 13. Wire `show more` to request the next tRPC page for that workspace.
-14. Append returned pages only when `listVersion` matches the workspace's current list version.
+14. On successful `show more`, append returned pages and update that workspace's `nextCursor`/`hasMore` state.
 15. Close the mobile drawer after session or workspace new-session selection.
 16. Handle Escape to close only the mobile drawer when it is open.
 17. Add a sidebar refresh action that refetches the bounded workspace index.
@@ -413,9 +416,13 @@ The workspace index service owns cursor and list-version semantics.
 - The fingerprint should include only the fields that affect pagination and visible session row freshness in v1: session path, modified timestamp, message count, first message, and display name.
 - The fingerprint should not include active target state, workspace expansion state, loaded page offset, or client-local visibility state.
 - A page cursor encodes `{ workspacePath, listVersion, offset }` as an opaque string.
+- The initial `sessionsWindow.nextCursor` offset is the bounded window length, usually 5; page requests never infer that offset from a missing cursor.
+- A page request must include a cursor; missing cursors fail clearly at the API boundary.
 - Cursor decode must fail clearly for malformed cursors.
 - A page request must fail clearly if the cursor workspace does not match `workspacePath`.
-- A page request must recompute and return the current workspace `listVersion` so the client can discard pages for stale visible workspace lists.
+- A page request must recompute the current workspace `listVersion` before slicing the page.
+- A page request must fail clearly if the cursor `listVersion` does not match the current workspace `listVersion`.
+- Successful page responses return the current workspace `listVersion`, which matches the accepted cursor version.
 - The client must treat cursor strings as opaque data and must not construct or inspect them.
 
 ## Command Wiring
@@ -527,8 +534,10 @@ Add focused tests for the workspace index service and tRPC API:
 - Workspace session pagination returns 10 additional sessions per `show more` request.
 - Unknown workspace page requests fail clearly.
 - Unsupported page limits fail clearly.
+- Missing cursors fail clearly.
 - Malformed cursors fail clearly.
 - Cursor workspace mismatches fail clearly.
+- Stale cursor list versions fail clearly.
 - tRPC workspace-index requests do not create or mutate a runtime.
 
 ### Client Tests
@@ -550,11 +559,11 @@ Add focused tests for sidebar state and tRPC helpers:
 - Initial bounded index failure renders a compact error state with refresh retry.
 - Manual refresh ignores duplicate refresh actions while a refresh request is in flight.
 - Current target bridge changes trigger active state refresh without forcing a bounded index refetch.
-- Workspace session pages append only when `listVersion` matches.
-- Workspace session pages with stale `listVersion` leave visible rows unchanged.
+- Successful workspace session pages append and update that workspace's `nextCursor`/`hasMore` state.
+- Stale cursor errors leave visible rows unchanged and require manual refresh.
 - Duplicate `show more` clicks for the same workspace are ignored while a workspace page request is in flight.
 - Failed `show more` requests leave existing workspace rows unchanged.
-- `show more` sends the workspace path, cursor, and limit through the tRPC API.
+- `show more` sends the workspace path, current server-provided cursor, and limit through the tRPC API.
 
 If client DOM tests would be brittle, prefer manual browser verification for layout and keep unit tests on pure state helpers.
 
@@ -603,6 +612,7 @@ Manual browser verification should cover:
 - Workspace groups initially show at most 5 recent sessions.
 - Workspaces with additional sessions show `show more`.
 - `show more` loads and appends 10 additional sessions for that workspace.
+- `show more` with a stale cursor leaves the visible rows unchanged and surfaces the refresh path.
 - Manual refresh refetches the bounded workspace index.
 - Manual refresh resets loaded overflow pages.
 - Stale workspace pages do not corrupt the visible session list.
@@ -630,6 +640,7 @@ Manual browser verification should cover:
 - Workspaces are sorted by stored workspace name, then absolute workspace path.
 - Workspace groups initially show at most 5 recent sessions.
 - Workspace groups can load 10 more sessions at a time through the tRPC `sidebar.workspaceSessions` procedure.
+- Workspace session page requests require a server-provided cursor and reject stale cursor versions.
 - Desktop sidebar defaults visible and persists show/hide preference.
 - Mobile drawer defaults hidden and does not persist open state.
 - Workspace expansion defaults to expanded and persists by workspace path.
@@ -637,7 +648,7 @@ Manual browser verification should cover:
 - Manual refresh resets all loaded overflow pages.
 - Initial load, refresh, and `show more` loading/error states follow the minimal v1 rules.
 - Out-of-order bounded index responses cannot replace newer sidebar state.
-- Stale workspace page responses cannot append rows to the visible workspace list.
+- Stale workspace page requests cannot append rows to the visible workspace list.
 - Active workspace and active session highlighting comes from the runtime bridge without forcing a catalog refetch.
 - Active sessions outside the loaded recent window are not rendered as synthetic rows.
 - Workspace new-session and session-switch actions use the existing WebSocket command channel.
