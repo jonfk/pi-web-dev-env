@@ -1,5 +1,7 @@
 # PLAN-004 Phase 3 Follow-Up: Remove `/resume` Path Arguments
 
+Status: Implemented.
+
 ## Goal
 
 Make `/resume` a picker-only command in `pi-webui`.

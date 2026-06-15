@@ -1,5 +1,7 @@
 # PLAN-004 Phase 1: Target Startup
 
+Status: Implemented.
+
 ## Goal
 
 Introduce selected target resolution before runtime creation and remove process/env cwd fallback from startup. At the end of this phase, pi-webui can start in one of four states:

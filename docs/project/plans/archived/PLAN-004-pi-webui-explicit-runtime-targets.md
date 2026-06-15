@@ -1,5 +1,7 @@
 # PLAN-004: pi-webui Explicit Runtime Targets
 
+Status: Implemented.
+
 ## Source Material
 
 - Product requirements: `docs/project/prds/PRD-004-pi-webui-explicit-runtime-targets.md`

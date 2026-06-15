@@ -1,5 +1,7 @@
 # PLAN-005: pi-webui @ File Completion
 
+Status: Implemented.
+
 ## Source Material
 
 - Prototype handoff: `docs/project/handoffs/2026-05-31-pi-webui-at-file-completion-prototypes-handoff.md`

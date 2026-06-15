@@ -1,5 +1,7 @@
 # PLAN-003 Phase 1: Server URL State and Runtime Startup
 
+Status: Superseded after implementation by PLAN-004 explicit runtime targets.
+
 ## Goal
 
 Move session and cwd selection to a server-side URL state path that runs before Pi runtime creation. At the end of this phase, the server can accept `/ws?session=...`, `/ws?cwd=...`, `/ws`, or invalid combinations, and it can either create the correct initial runtime config or emit `invalid_url_state` without bootstrapping a fallback runtime.

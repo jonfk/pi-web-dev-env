@@ -1,5 +1,7 @@
 # PLAN-006: wede Markdown Preview
 
+Status: Implemented.
+
 ## Source Material
 
 - Existing backlog item: `TODO.md`

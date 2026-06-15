@@ -1,5 +1,7 @@
 # PLAN-004 Phase 3: Target-Based Transitions
 
+Status: Implemented.
+
 ## Goal
 
 Move all cwd/session-changing commands to the selected target model. At the end of this phase, runtime-changing flows resolve a new target first, then create or replace the runtime from that target. `lastCwd` is persisted only after explicit target transitions.

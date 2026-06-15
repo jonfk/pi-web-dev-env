@@ -1,5 +1,7 @@
 # PLAN-003: pi-webui URL Session State Implementation
 
+Status: Superseded after implementation by PLAN-004 explicit runtime targets.
+
 ## Source Material
 
 - Final product decisions: `docs/project/prds/PRD-003-pi-webui-url-session-state.md`

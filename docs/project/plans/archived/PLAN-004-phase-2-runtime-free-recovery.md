@@ -1,5 +1,7 @@
 # PLAN-004 Phase 2: Runtime-Free Recovery
 
+Status: Implemented.
+
 ## Goal
 
 Make invalid URL and cwd-required states recoverable without creating a Pi runtime. At the end of this phase, users can choose a cwd or session from no-runtime state using the same picker ergonomics as normal runtime state.

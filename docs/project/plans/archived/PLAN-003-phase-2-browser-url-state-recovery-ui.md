@@ -1,5 +1,7 @@
 # PLAN-003 Phase 2: Browser URL State, Synchronization, and Recovery UI
 
+Status: Superseded after implementation by PLAN-004 explicit runtime targets.
+
 ## Goal
 
 Replace browser active-session localStorage with browser URL state, connect to the server with URL state on `/ws`, sync meaningful session and cwd identity changes into browser history, and render blocking invalid URL recovery.
